@@ -1,0 +1,142 @@
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #0d1117 0%, #000 100%);
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 3rem;
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.navbar nav a {
+  color: #ccc;
+  margin-left: 2rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navbar nav a:hover {
+  color: white;
+}
+
+.cta {
+  background: #0070f3;
+  color: white;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+}
+
+.hero {
+  text-align: center;
+  padding: 6rem 1rem 4rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: #bdbdbd;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.btn {
+  padding: 0.8rem 1.6rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btn.primary {
+  background: #0070f3;
+  color: white;
+}
+
+.btn.secondary {
+  border: 1px solid #444;
+  color: white;
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.badges span {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.services {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.service-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.card {
+  background: #111;
+  border: 1px solid #1c1c1c;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 280px;
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.price {
+  margin-top: 1rem;
+  font-weight: bold;
+  color: #0070f3;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  background: #0a0a0a;
+  color: #aaa;
+  margin-top: 3rem;
+}
