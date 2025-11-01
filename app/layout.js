@@ -1,4 +1,3 @@
-// app/layout.js
 import "../styles/globals.css";
 
 export const metadata = {
@@ -9,7 +8,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="bg-gradient-to-b from-[#04020a] via-[#0a0a1f] to-[#050312] text-white font-sans">
+        {children}
+      </body>
     </html>
   );
 }
