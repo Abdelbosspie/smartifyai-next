@@ -58,12 +58,12 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(40,50,140,0.15)_0%,_transparent_60%)]"></div>
         <h2 className="text-4xl md:text-6xl font-bold mb-6 z-10 leading-tight">
           Supercharge your business with{" "}
-          <span className="text-indigo-400">Artificial Intelligence</span>.
+          <span className="text-indigo-400">Artificial Intelligence</span>
         </h2>
         <p className="text-gray-400 max-w-2xl mb-10 leading-relaxed z-10 text-lg">
           SmartifyAI helps small and medium businesses automate workflows,
           enhance customer experience, and make smarter data-driven decisions —
-          all within one week.
+          all within one week
         </p>
         <div className="flex gap-4 flex-wrap justify-center z-10">
           <button
