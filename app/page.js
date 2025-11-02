@@ -127,19 +127,19 @@ export default function Home() {
             title="AI Chatbots"
             desc="Chatbots that handle customer queries, lead generation, and support — powered by ChatGPT and your company data."
             points={["Website & WhatsApp integration", "Custom training on FAQs", "24/7 intelligent support"]}
-            price="Setup from £500"
+            
           />
           <ServiceCard
             title="Workflow Automation"
             desc="Automate repetitive workflows — from reporting to CRM updates — using AI and tools you already use."
             points={["Google Sheets & Gmail", "Zapier/Make automation", "CRM & ERP integrations"]}
-            price="Projects from £300"
+            
           />
           <ServiceCard
             title="AI Dashboards & Tools"
             desc="Create mini internal tools — dashboards, content generators, and analytics apps built with AI APIs."
             points={["Custom React/Streamlit apps", "OpenAI & Hugging Face", "Secure hosting included"]}
-            price="From £750"
+            
           />
         </div>
       </section>
