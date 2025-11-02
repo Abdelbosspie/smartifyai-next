@@ -200,35 +200,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Contact */}
-      <section id="contact" className="text-center py-28 bg-gradient-to-b from-[#06061a] to-[#0a0d1c] border-t border-white/10 transition-all duration-500">
+   {/* Contact Us */}
+      <section id="contact" className="text-center py-28 bg-gradient-to-b from-[#040312] to-[#08091a] border-t border-white/10">
         <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">Contact Us</h3>
         <p className="text-gray-400 mb-10 max-w-xl mx-auto">
           Ready to integrate AI into your business? Fill in your details and we’ll send a personalized proposal within 24 hours.
         </p>
 
         <form className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left">
-          <input type="text" placeholder="Full Name" className="input-style" />
-          <input type="email" placeholder="Business Email" className="input-style" />
-          <input type="text" placeholder="Company Name" className="input-style" />
-          <input type="text" placeholder="Industry (e.g., Retail, Finance, Healthcare)" className="input-style" />
-          <select className="input-style">
+          <input
+            type="text"
+            placeholder="Full Name"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <input
+            type="email"
+            placeholder="Business Email"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <input
+            type="text"
+            placeholder="Company Name"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <input
+            type="text"
+            placeholder="Industry (e.g., Retail, Finance, Healthcare)"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <select
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          >
             <option value="">Project Type</option>
             <option value="chatbot">AI Chatbot</option>
             <option value="automation">Workflow Automation</option>
             <option value="dashboard">AI Analytics / Dashboard</option>
             <option value="custom">Custom AI Project</option>
           </select>
-          <select className="input-style">
+          <select
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          >
             <option value="">Estimated Budget</option>
             <option value="300">Under £300</option>
             <option value="500">£300–£500</option>
             <option value="1000">£500–£1,000</option>
             <option value="custom">Custom Quote</option>
           </select>
-          <textarea rows="5" placeholder="Tell us about your project, challenges, or goals..." className="col-span-1 md:col-span-2 input-style"></textarea>
+          <textarea
+            rows="5"
+            placeholder="Tell us about your project, challenges, or goals..."
+            className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          ></textarea>
 
-          <button className="col-span-1 md:col-span-2 bg-[#6366F1] hover:bg-[#4F46E5] px-8 py-3 rounded-lg font-medium text-white transition-all duration-300 shadow-md shadow-indigo-900/30">
+          <button className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all">
             Submit Inquiry
           </button>
         </form>
