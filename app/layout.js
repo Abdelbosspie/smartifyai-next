@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
         {children}
         <Analytics /> {/* 👈 Enables Vercel visitor analytics */}
 
-        {/* 👇 Updated Chatbase Chatbot Embed */}
+        {/* 👇 Chatbase Chatbot Embed */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -33,13 +33,20 @@ export default function RootLayout({ children }) {
                 const onLoad = function(){
                   const script = document.createElement("script");
                   script.src = "https://www.chatbase.co/embed.min.js";
-                  script.id = "xA3cZzzmrXqAnJOtN2Uwc"; // ✅ Your NEW Chatbase bot ID
+                  script.id = "xA3cZzzmrXqAnJOtN2Uwc"; // ✅ Your Chatbase bot ID
                   script.domain = "www.chatbase.co";
                   document.body.appendChild(script);
                 };
                 if(document.readyState === "complete"){onLoad()}
                 else {window.addEventListener("load", onLoad)}
               })();
+
+              // 👇 Helps Chatbase remember session context (fixes 'Load recent conversations')
+              window.addEventListener("load", () => {
+                if (window.chatbase) {
+                  window.chatbase('setUserId', Date.now().toString());
+                }
+              });
             `,
           }}
         />
