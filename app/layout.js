@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
         {children}
         <Analytics /> {/* 👈 Enables Vercel visitor analytics */}
 
-        {/* 👇 Chatbase Chatbot Embed */}
+        {/* 👇 Updated Chatbase Chatbot Embed */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -33,7 +33,7 @@ export default function RootLayout({ children }) {
                 const onLoad = function(){
                   const script = document.createElement("script");
                   script.src = "https://www.chatbase.co/embed.min.js";
-                  script.id = "dK__O4aVas5B9SAKXsukW"; // 👈 your Chatbase bot ID
+                  script.id = "xA3cZzzmrXqAnJOtN2Uwc"; // ✅ Your NEW Chatbase bot ID
                   script.domain = "www.chatbase.co";
                   document.body.appendChild(script);
                 };
