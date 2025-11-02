@@ -235,8 +235,8 @@ export default function Home() {
 
         <p className="text-gray-500 mt-8 text-sm">
           Prefer direct contact? Email us at{" "}
-          <a href="mailto:Abdel.hashad06@gmail.com" className="underline text-indigo-400">
-            Abdel.hashad06@gmail.com
+          <a href="mailto:contact.smartifyai@gmail.com" className="underline text-indigo-400">
+            contact.simplifyai@gmail.com
           </a>
         </p>
       </section>
