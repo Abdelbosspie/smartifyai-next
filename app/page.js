@@ -267,7 +267,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="text-center text-gray-500 py-6 border-t border-white/10 text-sm bg-black/20 transition-all duration-500">
-        © 2025 SmartifyAI. All rights reserved. | Made with ❤️ in Dubai.
+        © 2025 SmartifyAI. All rights reserved.
       </footer>
     </main>
   );
