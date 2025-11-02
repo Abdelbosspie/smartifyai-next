@@ -4,6 +4,12 @@ import React, { useState } from "react";
 export default function Home() {
   const [openFAQ, setOpenFAQ] = useState(null);
 
+  // Smooth scroll helper
+  const smoothScroll = (id) => {
+    const el = document.querySelector(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const faqs = [
     {
       q: "How long does it take to implement AI in my business?",
@@ -31,16 +37,19 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-b from-[#03020a] via-[#070a18] to-[#01020a] text-gray-100 font-sans scroll-smooth">
       {/* Navbar */}
       <nav className="flex justify-between items-center px-8 py-6 border-b border-white/10 backdrop-blur-md sticky top-0 z-50 bg-black/40">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
+        <button
+          onClick={() => smoothScroll("body")}
+          className="text-2xl font-bold text-white tracking-tight hover:text-indigo-400 transition-colors"
+        >
           Smartify<span className="text-indigo-400">AI</span>
-        </h1>
+        </button>
         <ul className="hidden md:flex gap-8 text-gray-300">
-          <li><a href="#mission" className="hover:text-white transition-colors">Our Mission</a></li>
-          <li><a href="#services" className="hover:text-white transition-colors">Services</a></li>
-          <li><a href="#examples" className="hover:text-white transition-colors">Examples</a></li>
-          <li><a href="#whyus" className="hover:text-white transition-colors">Why Us</a></li>
-          <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
-          <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
+          <li><button onClick={() => smoothScroll("#mission")} className="hover:text-white transition-all duration-300">Our Mission</button></li>
+          <li><button onClick={() => smoothScroll("#services")} className="hover:text-white transition-all duration-300">Services</button></li>
+          <li><button onClick={() => smoothScroll("#examples")} className="hover:text-white transition-all duration-300">Examples</button></li>
+          <li><button onClick={() => smoothScroll("#whyus")} className="hover:text-white transition-all duration-300">Why Us</button></li>
+          <li><button onClick={() => smoothScroll("#faq")} className="hover:text-white transition-all duration-300">FAQ</button></li>
+          <li><button onClick={() => smoothScroll("#contact")} className="hover:text-white transition-all duration-300">Contact</button></li>
         </ul>
       </nav>
 
@@ -57,25 +66,25 @@ export default function Home() {
           all within one week.
         </p>
         <div className="flex gap-4 flex-wrap justify-center z-10">
-          <a
-            href="#contact"
-            className="bg-indigo-500 hover:bg-indigo-600 px-7 py-3 rounded-lg font-medium transition-all shadow-lg shadow-indigo-900/40"
+          <button
+            onClick={() => smoothScroll("#contact")}
+            className="bg-indigo-500 hover:bg-indigo-600 px-7 py-3 rounded-lg font-medium transition-all shadow-lg shadow-indigo-900/40 duration-300"
           >
             Contact Us
-          </a>
-          <a
-            href="#services"
-            className="border border-gray-600 hover:border-white px-7 py-3 rounded-lg font-medium text-gray-300 hover:text-white transition-all"
+          </button>
+          <button
+            onClick={() => smoothScroll("#services")}
+            className="border border-gray-600 hover:border-white px-7 py-3 rounded-lg font-medium text-gray-300 hover:text-white transition-all duration-300"
           >
             Explore Services
-          </a>
+          </button>
         </div>
       </section>
 
       {/* Our Mission */}
       <section
         id="mission"
-        className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 bg-gradient-to-b from-[#06061a] to-[#0b0b20] rounded-2xl shadow-lg shadow-indigo-900/20"
+        className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 bg-gradient-to-b from-[#06061a] to-[#0b0b20] rounded-2xl shadow-lg shadow-indigo-900/20 transition-all duration-500"
       >
         <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-center text-white">
           Our Mission
@@ -106,7 +115,7 @@ export default function Home() {
       </section>
 
       {/* Services */}
-      <section id="services" className="max-w-6xl mx-auto px-6 py-24">
+      <section id="services" className="max-w-6xl mx-auto px-6 py-24 transition-all duration-500">
         <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-center text-white">
           Services
         </h3>
@@ -136,7 +145,7 @@ export default function Home() {
       </section>
 
       {/* Examples */}
-      <section id="examples" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10">
+      <section id="examples" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500">
         <h3 className="text-3xl md:text-4xl font-semibold mb-10 text-center text-white">
           Examples of Our Work
         </h3>
@@ -157,7 +166,7 @@ export default function Home() {
       </section>
 
       {/* Why Us */}
-      <section id="whyus" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 text-center">
+      <section id="whyus" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 text-center transition-all duration-500">
         <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">Why Choose SmartifyAI?</h3>
         <p className="text-gray-400 max-w-3xl mx-auto mb-14">
           We blend business strategy with technical expertise to deliver measurable outcomes — not just software.
@@ -170,7 +179,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="max-w-5xl mx-auto px-6 py-24 border-t border-white/10">
+      <section id="faq" className="max-w-5xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500">
         <h3 className="text-3xl md:text-4xl font-semibold text-center mb-10 text-white">
           Frequently Asked Questions
         </h3>
@@ -178,7 +187,7 @@ export default function Home() {
           {faqs.map((item, i) => (
             <div
               key={i}
-              className="bg-[#0e1022]/80 p-6 rounded-xl border border-[#1e2338] hover:bg-[#15172a]/90 transition-all cursor-pointer"
+              className="bg-[#0e1022]/80 p-6 rounded-xl border border-[#1e2338] hover:bg-[#15172a]/90 transition-all duration-300 cursor-pointer"
               onClick={() => setOpenFAQ(openFAQ === i ? null : i)}
             >
               <div className="flex justify-between items-center">
@@ -191,59 +200,35 @@ export default function Home() {
         </div>
       </section>
 
-       {/* Contact Us */}
-      <section id="contact" className="text-center py-28 bg-gradient-to-b from-[#040312] to-[#08091a] border-t border-white/10">
+      {/* Contact */}
+      <section id="contact" className="text-center py-28 bg-gradient-to-b from-[#06061a] to-[#0a0d1c] border-t border-white/10 transition-all duration-500">
         <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">Contact Us</h3>
         <p className="text-gray-400 mb-10 max-w-xl mx-auto">
           Ready to integrate AI into your business? Fill in your details and we’ll send a personalized proposal within 24 hours.
         </p>
 
         <form className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left">
-          <input
-            type="text"
-            placeholder="Full Name"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="email"
-            placeholder="Business Email"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="text"
-            placeholder="Company Name"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="text"
-            placeholder="Industry (e.g., Retail, Finance, Healthcare)"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <select
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          >
+          <input type="text" placeholder="Full Name" className="input-style" />
+          <input type="email" placeholder="Business Email" className="input-style" />
+          <input type="text" placeholder="Company Name" className="input-style" />
+          <input type="text" placeholder="Industry (e.g., Retail, Finance, Healthcare)" className="input-style" />
+          <select className="input-style">
             <option value="">Project Type</option>
             <option value="chatbot">AI Chatbot</option>
             <option value="automation">Workflow Automation</option>
             <option value="dashboard">AI Analytics / Dashboard</option>
             <option value="custom">Custom AI Project</option>
           </select>
-          <select
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          >
+          <select className="input-style">
             <option value="">Estimated Budget</option>
             <option value="300">Under £300</option>
             <option value="500">£300–£500</option>
             <option value="1000">£500–£1,000</option>
             <option value="custom">Custom Quote</option>
           </select>
-          <textarea
-            rows="5"
-            placeholder="Tell us about your project, challenges, or goals..."
-            className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          ></textarea>
+          <textarea rows="5" placeholder="Tell us about your project, challenges, or goals..." className="col-span-1 md:col-span-2 input-style"></textarea>
 
-          <button className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all">
+          <button className="col-span-1 md:col-span-2 bg-[#6366F1] hover:bg-[#4F46E5] px-8 py-3 rounded-lg font-medium text-white transition-all duration-300 shadow-md shadow-indigo-900/30">
             Submit Inquiry
           </button>
         </form>
@@ -257,7 +242,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center text-gray-500 py-6 border-t border-white/10 text-sm bg-black/20">
+      <footer className="text-center text-gray-500 py-6 border-t border-white/10 text-sm bg-black/20 transition-all duration-500">
         © 2025 SmartifyAI. All rights reserved. | Made with ❤️ in Dubai.
       </footer>
     </main>
@@ -267,7 +252,7 @@ export default function Home() {
 /* ----- Small Components ----- */
 function MissionCard({ icon, title, desc }) {
   return (
-    <div className="p-6 bg-[#0f1023]/80 border border-[#1f2240] rounded-xl hover:-translate-y-2 transition-all">
+    <div className="p-6 bg-[#0f1023]/80 border border-[#1f2240] rounded-xl hover:-translate-y-2 transition-all duration-300">
       <div className="text-4xl mb-3 text-indigo-400">{icon}</div>
       <h4 className="text-xl font-semibold mb-2 text-white">{title}</h4>
       <p className="text-gray-400 text-sm">{desc}</p>
@@ -277,7 +262,7 @@ function MissionCard({ icon, title, desc }) {
 
 function ServiceCard({ title, desc, points, price }) {
   return (
-    <div className="bg-[#0e1022]/80 p-8 rounded-xl border border-[#1e2338] hover:bg-[#161a2a]/90 hover:-translate-y-2 transition-all shadow-lg shadow-indigo-900/20">
+    <div className="bg-[#0e1022]/80 p-8 rounded-xl border border-[#1e2338] hover:bg-[#161a2a]/90 hover:-translate-y-2 transition-all duration-300 shadow-lg shadow-indigo-900/20">
       <h4 className="text-2xl font-semibold mb-4 text-white">{title}</h4>
       <p className="text-gray-400 mb-4 text-sm">{desc}</p>
       <ul className="text-sm text-gray-500 list-disc pl-5 space-y-1 mb-4">
@@ -292,7 +277,7 @@ function ServiceCard({ title, desc, points, price }) {
 
 function ExampleCard({ title, desc }) {
   return (
-    <div className="bg-[#0f1023]/80 p-6 rounded-xl border border-[#1f2240] hover:bg-[#161a2a]/90 transition-all text-left">
+    <div className="bg-[#0f1023]/80 p-6 rounded-xl border border-[#1f2240] hover:bg-[#161a2a]/90 transition-all duration-300 text-left">
       <h4 className="text-xl font-semibold text-white mb-2">{title}</h4>
       <p className="text-gray-400 text-sm">{desc}</p>
     </div>
@@ -301,7 +286,7 @@ function ExampleCard({ title, desc }) {
 
 function WhyCard({ icon, title, desc }) {
   return (
-    <div className="p-6 bg-[#0f1023]/80 border border-[#1f2240] rounded-xl hover:-translate-y-2 transition-all">
+    <div className="p-6 bg-[#0f1023]/80 border border-[#1f2240] rounded-xl hover:-translate-y-2 transition-all duration-300">
       <div className="text-4xl mb-3 text-indigo-400">{icon}</div>
       <h4 className="text-xl font-semibold mb-2 text-white">{title}</h4>
       <p className="text-gray-400 text-sm">{desc}</p>
