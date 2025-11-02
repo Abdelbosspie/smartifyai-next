@@ -13,7 +13,7 @@ export default function Home() {
   const faqs = [
     {
       q: "How long does it take to implement AI in my business?",
-      a: "Most SmartifyAI projects are completed within 5 to 7 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week."
+      a: "Most SmartifyAI projects are completed within 5 to 7 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week"
     },
     {
       q: "Do I need any technical background?",

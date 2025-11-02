@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 
 export const metadata = {
   title: "SmartifyAI",
-  description: "We integrate AI into your business in one week.",
+  description: "We integrate AI into your business in one week",
 };
 
 export default function RootLayout({ children }) {
