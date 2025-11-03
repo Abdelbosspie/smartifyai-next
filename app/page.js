@@ -13,7 +13,7 @@ export default function Home() {
   const faqs = [
     {
       q: "How long does it take to implement AI in my business?",
-      a: "Most SmartifyAI projects are completed within 5 to 7 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week"
+      a: "Most SmartifyAI projects are completed within 2 to 3 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week"
     },
     {
       q: "Do I need any technical background?",
@@ -120,25 +120,25 @@ export default function Home() {
           Services
         </h3>
         <p className="text-gray-400 text-center mb-14 max-w-2xl mx-auto">
-          Explore our core offerings that help businesses like yours save time, reduce costs, and grow smarter.
+          Choose from our suite of AI-powered tools designed to automate operations, enhance customer experience, and drive growth
         </p>
         <div className="grid md:grid-cols-3 gap-10">
           <ServiceCard
             title="AI Chatbots"
-            desc="Chatbots that handle customer queries, lead generation, and support — powered by ChatGPT and your company data."
-            points={["Website & WhatsApp integration", "Custom training on FAQs", "24/7 intelligent support"]}
+            desc="Intelligent conversational AI that engages customers, answers questions instantly, and captures leads 24/7 across your website and social channels"
+            points={["Instant customer responses", "Multi-language support", "24/7 intelligent support"]}
             
           />
           <ServiceCard
-            title="Workflow Automation"
-            desc="Automate repetitive workflows — from reporting to CRM updates — using AI and tools you already use."
-            points={["Google Sheets & Gmail", "Zapier/Make automation", "CRM & ERP integrations"]}
+            title="AI Receptionist"
+            desc="Never miss a call again with AI-powered phone answering that schedules appointments, routes calls, and provides information like a human receptionist"
+            points={["24/7 call handling", "Appointment scheduling", "Smart call routing"]}
             
           />
           <ServiceCard
-            title="AI Dashboards & Tools"
-            desc="Create mini internal tools — dashboards, content generators, and analytics apps built with AI APIs."
-            points={["Custom React/Streamlit apps", "OpenAI & Hugging Face", "Secure hosting included"]}
+            title="Custom Websites"
+            desc="Professional, conversion-optimized websites integrated with AI tools to create a complete digital presence that works for you around the clock"
+            points={["Mobile-responsive design", "SEO optimized", "AI chatbot integration"]}
             
           />
         </div>
@@ -172,7 +172,7 @@ export default function Home() {
           We blend business strategy with technical expertise to deliver measurable outcomes — not just software.
         </p>
         <div className="grid md:grid-cols-3 gap-8">
-          <WhyCard icon="⚡" title="Fast Execution" desc="We deliver working AI prototypes within 5–7 days — not months." />
+          <WhyCard icon="⚡" title="Fast Execution" desc="We deliver working AI prototypes within 2-3 days — not months." />
           <WhyCard icon="🧠" title="Deep Expertise" desc="Our team combines AI, business automation, and UX design expertise." />
           <WhyCard icon="💬" title="Client-Focused" desc="Every project starts with your needs and ends with your success metrics." />
         </div>
