@@ -207,55 +207,73 @@ export default function Home() {
           Ready to integrate AI into your business? Fill in your details and we’ll send a personalized proposal within 24 hours.
         </p>
 
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left">
-          <input
-            type="text"
-            placeholder="Full Name"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="email"
-            placeholder="Business Email"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="text"
-            placeholder="Company Name"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <input
-            type="text"
-            placeholder="Industry (e.g., Retail, Finance, Healthcare)"
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          />
-          <select
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          >
-            <option value="">Project Type</option>
-            <option value="chatbot">AI Chatbot</option>
-            <option value="automation">Workflow Automation</option>
-            <option value="dashboard">AI Analytics / Dashboard</option>
-            <option value="custom">Custom AI Project</option>
-          </select>
-          <select
-            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          >
-            <option value="">Estimated Budget</option>
-            <option value="300">Under £300</option>
-            <option value="500">£300–£500</option>
-            <option value="1000">£500–£1,000</option>
-            <option value="custom">Custom Quote</option>
-          </select>
-          <textarea
-            rows="5"
-            placeholder="Tell us about your project, challenges, or goals..."
-            className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-          ></textarea>
+        <form
+  onSubmit={async (e) => {
+    e.preventDefault();
 
-          <button className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all">
-            Submit Inquiry
-          </button>
-        </form>
+    const formData = {
+      name: e.target[0].value,
+      email: e.target[1].value,
+      company: e.target[2].value,
+      industry: e.target[3].value,
+      projectType: e.target[4].value,
+      budget: e.target[5].value,
+      message: e.target[6].value,
+    };
+
+    console.log("Submitting form...", formData);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ Your inquiry has been sent!");
+        e.target.reset();
+      } else {
+        alert("❌ Something went wrong. Please try again later.");
+      }
+    } catch (err) {
+      console.error("Form submission error:", err);
+      alert("⚠️ Network error. Please try again later.");
+    }
+  }}
+  className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left"
+>
+  <input type="text" placeholder="Full Name" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" required />
+  <input type="email" placeholder="Business Email" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" required />
+  <input type="text" placeholder="Company Name" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" />
+  <input type="text" placeholder="Industry (e.g., Retail, Finance, Healthcare)" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" />
+  <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
+    <option value="">Project Type</option>
+    <option value="chatbot">AI Chatbot</option>
+    <option value="receptionist">AI Receptionist</option>
+    <option value="website">Website</option>
+    <option value="custom">Custom AI Project</option>
+  </select>
+  <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
+    <option value="">Estimated Budget</option>
+    <option value="300">Under £300</option>
+    <option value="500">£300–£500</option>
+    <option value="1000">£500–£1,000</option>
+    <option value="custom">Custom Quote</option>
+  </select>
+  <textarea
+    rows="5"
+    placeholder="Tell us about your project, challenges, or goals..."
+    className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+    required
+  ></textarea>
+
+  <button type="submit" className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all">
+    Submit Inquiry
+  </button>
+</form>
+
 
         <p className="text-gray-500 mt-8 text-sm">
           Prefer direct contact? Email us at{" "}
