@@ -13,24 +13,24 @@ export default function Home() {
   const faqs = [
     {
       q: "How long does it take to implement AI in my business?",
-      a: "Most SmartifyAI projects are completed within 2 to 3 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week"
+      a: "Most SmartifyAI projects are completed within 2 to 3 working days. We start with a discovery session, build your prototype, and deploy the solution by the end of the week",
     },
     {
       q: "Do I need any technical background?",
-      a: "Not at all. We handle everything — from data setup and integration to automation workflows. You just describe your pain points, and we turn them into working AI tools."
+      a: "Not at all. We handle everything — from data setup and integration to automation workflows. You just describe your pain points, and we turn them into working AI tools.",
     },
     {
       q: "What tools can SmartifyAI connect with?",
-      a: "We integrate with Google Workspace, Notion, Slack, WhatsApp, HubSpot, Shopify, Trello, and hundreds of others using APIs and automation platforms like Zapier or Make."
+      a: "We integrate with Google Workspace, Notion, Slack, WhatsApp, HubSpot, Shopify, Trello, and hundreds of others using APIs and automation platforms like Zapier or Make.",
     },
     {
       q: "How much does it cost?",
-      a: "We offer project-based pricing starting at £300, depending on the scope. For recurring updates or advanced integrations, we offer optional monthly support plans."
+      a: "We offer project-based pricing starting at £300, depending on the scope. For recurring updates or advanced integrations, we offer optional monthly support plans.",
     },
     {
       q: "Is my data secure?",
-      a: "Absolutely. Your data stays private and never leaves your control. We use encrypted storage, secured APIs, and only connect to verified third-party services."
-    }
+      a: "Absolutely. Your data stays private and never leaves your control. We use encrypted storage, secured APIs, and only connect to verified third-party services.",
+    },
   ];
 
   return (
@@ -44,12 +44,54 @@ export default function Home() {
           Smartify<span className="text-indigo-400">AI</span>
         </button>
         <ul className="hidden md:flex gap-8 text-gray-300">
-          <li><button onClick={() => smoothScroll("#mission")} className="hover:text-white transition-all duration-300">Our Mission</button></li>
-          <li><button onClick={() => smoothScroll("#services")} className="hover:text-white transition-all duration-300">Services</button></li>
-          <li><button onClick={() => smoothScroll("#examples")} className="hover:text-white transition-all duration-300">Examples</button></li>
-          <li><button onClick={() => smoothScroll("#whyus")} className="hover:text-white transition-all duration-300">Why Us</button></li>
-          <li><button onClick={() => smoothScroll("#faq")} className="hover:text-white transition-all duration-300">FAQ</button></li>
-          <li><button onClick={() => smoothScroll("#contact")} className="hover:text-white transition-all duration-300">Contact</button></li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#mission")}
+              className="hover:text-white transition-all duration-300"
+            >
+              Our Mission
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#services")}
+              className="hover:text-white transition-all duration-300"
+            >
+              Services
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#examples")}
+              className="hover:text-white transition-all duration-300"
+            >
+              Examples
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#whyus")}
+              className="hover:text-white transition-all duration-300"
+            >
+              Why Us
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#faq")}
+              className="hover:text-white transition-all duration-300"
+            >
+              FAQ
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => smoothScroll("#contact")}
+              className="hover:text-white transition-all duration-300"
+            >
+              Contact
+            </button>
+          </li>
         </ul>
       </nav>
 
@@ -126,26 +168,38 @@ export default function Home() {
           <ServiceCard
             title="AI Chatbots"
             desc="Intelligent conversational AI that engages customers, answers questions instantly, and captures leads 24/7 across your website and social channels"
-            points={["Instant customer responses", "Multi-language support", "24/7 intelligent support"]}
-            
+            points={[
+              "Instant customer responses",
+              "Multi-language support",
+              "24/7 intelligent support",
+            ]}
           />
           <ServiceCard
             title="AI Receptionist"
             desc="Never miss a call again with AI-powered phone answering that schedules appointments, routes calls, and provides information like a human receptionist"
-            points={["24/7 call handling", "Appointment scheduling", "Smart call routing"]}
-            
+            points={[
+              "24/7 call handling",
+              "Appointment scheduling",
+              "Smart call routing",
+            ]}
           />
           <ServiceCard
             title="Custom Websites"
             desc="Professional, conversion-optimized websites integrated with AI tools to create a complete digital presence that works for you around the clock"
-            points={["Mobile-responsive design", "SEO optimized", "AI chatbot integration"]}
-            
+            points={[
+              "Mobile-responsive design",
+              "SEO optimized",
+              "AI chatbot integration",
+            ]}
           />
         </div>
       </section>
 
       {/* Examples */}
-      <section id="examples" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500">
+      <section
+        id="examples"
+        className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500"
+      >
         <h3 className="text-3xl md:text-4xl font-semibold mb-10 text-center text-white">
           Examples of Our Work
         </h3>
@@ -166,20 +220,40 @@ export default function Home() {
       </section>
 
       {/* Why Us */}
-      <section id="whyus" className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 text-center transition-all duration-500">
-        <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">Why Choose SmartifyAI?</h3>
+      <section
+        id="whyus"
+        className="max-w-6xl mx-auto px-6 py-24 border-t border-white/10 text-center transition-all duration-500"
+      >
+        <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">
+          Why Choose SmartifyAI?
+        </h3>
         <p className="text-gray-400 max-w-3xl mx-auto mb-14">
           We blend business strategy with technical expertise to deliver measurable outcomes — not just software.
         </p>
         <div className="grid md:grid-cols-3 gap-8">
-          <WhyCard icon="⚡" title="Fast Execution" desc="We deliver working AI prototypes within 2-3 days — not months." />
-          <WhyCard icon="🧠" title="Deep Expertise" desc="Our team combines AI, business automation, and UX design expertise." />
-          <WhyCard icon="💬" title="Client-Focused" desc="Every project starts with your needs and ends with your success metrics." />
+          <WhyCard
+            icon="⚡"
+            title="Fast Execution"
+            desc="We deliver working AI prototypes within 2-3 days — not months."
+          />
+          <WhyCard
+            icon="🧠"
+            title="Deep Expertise"
+            desc="Our team combines AI, business automation, and UX design expertise."
+          />
+          <WhyCard
+            icon="💬"
+            title="Client-Focused"
+            desc="Every project starts with your needs and ends with your success metrics."
+          />
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="max-w-5xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500">
+      <section
+        id="faq"
+        className="max-w-5xl mx-auto px-6 py-24 border-t border-white/10 transition-all duration-500"
+      >
         <h3 className="text-3xl md:text-4xl font-semibold text-center mb-10 text-white">
           Frequently Asked Questions
         </h3>
@@ -192,92 +266,124 @@ export default function Home() {
             >
               <div className="flex justify-between items-center">
                 <h4 className="text-lg font-medium text-white">{item.q}</h4>
-                <span className="text-indigo-400 text-2xl">{openFAQ === i ? "−" : "+"}</span>
+                <span className="text-indigo-400 text-2xl">
+                  {openFAQ === i ? "−" : "+"}
+                </span>
               </div>
-              {openFAQ === i && <p className="mt-3 text-gray-400 text-sm leading-relaxed">{item.a}</p>}
+              {openFAQ === i && (
+                <p className="mt-3 text-gray-400 text-sm leading-relaxed">
+                  {item.a}
+                </p>
+              )}
             </div>
           ))}
         </div>
       </section>
 
-   {/* Contact Us */}
-      <section id="contact" className="text-center py-28 bg-gradient-to-b from-[#040312] to-[#08091a] border-t border-white/10">
-        <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">Contact Us</h3>
+      {/* Contact Us */}
+      <section
+        id="contact"
+        className="text-center py-28 bg-gradient-to-b from-[#040312] to-[#08091a] border-t border-white/10"
+      >
+        <h3 className="text-3xl md:text-4xl font-semibold mb-6 text-white">
+          Contact Us
+        </h3>
         <p className="text-gray-400 mb-10 max-w-xl mx-auto">
           Ready to integrate AI into your business? Fill in your details and we’ll send a personalized proposal within 24 hours.
         </p>
 
+        {/* Contact Form */}
         <form
-  onSubmit={async (e) => {
-    e.preventDefault();
+          onSubmit={async (e) => {
+            e.preventDefault();
 
-    const formData = {
-      name: e.target[0].value,
-      email: e.target[1].value,
-      company: e.target[2].value,
-      industry: e.target[3].value,
-      projectType: e.target[4].value,
-      budget: e.target[5].value,
-      message: e.target[6].value,
-    };
+            const formData = {
+              name: e.target[0].value,
+              email: e.target[1].value,
+              company: e.target[2].value,
+              industry: e.target[3].value,
+              projectType: e.target[4].value,
+              budget: e.target[5].value,
+              message: e.target[6].value,
+            };
 
-    console.log("Submitting form...", formData);
+            try {
+              const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+              });
 
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+              const data = await res.json();
+              if (data.success) {
+                alert("✅ Your inquiry has been sent!");
+                e.target.reset();
+              } else {
+                alert("❌ Something went wrong. Please try again later.");
+              }
+            } catch (err) {
+              alert("⚠️ Network error. Please try again later.");
+            }
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left"
+        >
+          <input
+            type="text"
+            placeholder="Full Name"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+            required
+          />
+          <input
+            type="email"
+            placeholder="Business Email"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Company Name"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <input
+            type="text"
+            placeholder="Industry (e.g., Retail, Finance, Healthcare)"
+            className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+          />
+          <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
+            <option value="">Project Type</option>
+            <option value="chatbot">AI Chatbot</option>
+            <option value="receptionist">AI Receptionist</option>
+            <option value="website">Website</option>
+            <option value="custom">Custom AI Project</option>
+          </select>
+          <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
+            <option value="">Estimated Budget</option>
+            <option value="300">Under £300</option>
+            <option value="500">£300–£500</option>
+            <option value="1000">£500–£1,000</option>
+            <option value="custom">Custom Quote</option>
+          </select>
+          <textarea
+            rows="5"
+            placeholder="Tell us about your project, challenges, or goals..."
+            className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
+            required
+          ></textarea>
 
-      const data = await res.json();
-      if (data.success) {
-        alert("✅ Your inquiry has been sent!");
-        e.target.reset();
-      } else {
-        alert("❌ Something went wrong. Please try again later.");
-      }
-    } catch (err) {
-      console.error("Form submission error:", err);
-      alert("⚠️ Network error. Please try again later.");
-    }
-  }}
-  className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 max-w-3xl mx-auto text-left"
->
-  <input type="text" placeholder="Full Name" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" required />
-  <input type="email" placeholder="Business Email" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" required />
-  <input type="text" placeholder="Company Name" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" />
-  <input type="text" placeholder="Industry (e.g., Retail, Finance, Healthcare)" className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full" />
-  <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
-    <option value="">Project Type</option>
-    <option value="chatbot">AI Chatbot</option>
-    <option value="receptionist">AI Receptionist</option>
-    <option value="website">Website</option>
-    <option value="custom">Custom AI Project</option>
-  </select>
-  <select className="px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full">
-    <option value="">Estimated Budget</option>
-    <option value="300">Under £300</option>
-    <option value="500">£300–£500</option>
-    <option value="1000">£500–£1,000</option>
-    <option value="custom">Custom Quote</option>
-  </select>
-  <textarea
-    rows="5"
-    placeholder="Tell us about your project, challenges, or goals..."
-    className="col-span-1 md:col-span-2 px-4 py-3 rounded-lg bg-[#141826] border border-white/20 text-white w-full"
-    required
-  ></textarea>
-
-  <button type="submit" className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all">
-    Submit Inquiry
-  </button>
-</form>
-
+          <button
+            type="submit"
+            className="col-span-1 md:col-span-2 bg-indigo-500 hover:bg-indigo-600 px-8 py-3 rounded-lg font-medium transition-all"
+          >
+            Submit Inquiry
+          </button>
+        </form>
 
         <p className="text-gray-500 mt-8 text-sm">
           Prefer direct contact? Email us at{" "}
-          <a href="mailto:contact.smartifyai@gmail.com" className="underline text-indigo-400">
+          <a
+            href="mailto:contact.smartifyai@gmail.com"
+            className="underline text-indigo-400"
+          >
             contact.simplifyai@gmail.com
           </a>
         </p>
@@ -291,7 +397,7 @@ export default function Home() {
   );
 }
 
-/* ----- Small Components ----- */
+/* Components */
 function MissionCard({ icon, title, desc }) {
   return (
     <div className="p-6 bg-[#0f1023]/80 border border-[#1f2240] rounded-xl hover:-translate-y-2 transition-all duration-300">
@@ -302,17 +408,31 @@ function MissionCard({ icon, title, desc }) {
   );
 }
 
-function ServiceCard({ title, desc, points, price }) {
+function ServiceCard({ title, desc, points }) {
+  const smoothScroll = (id) => {
+    const el = document.querySelector(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="bg-[#0e1022]/80 p-8 rounded-xl border border-[#1e2338] hover:bg-[#161a2a]/90 hover:-translate-y-2 transition-all duration-300 shadow-lg shadow-indigo-900/20">
-      <h4 className="text-2xl font-semibold mb-4 text-white">{title}</h4>
-      <p className="text-gray-400 mb-4 text-sm">{desc}</p>
-      <ul className="text-sm text-gray-500 list-disc pl-5 space-y-1 mb-4">
-        {points.map((p, i) => (
-          <li key={i}>{p}</li>
-        ))}
-      </ul>
-      <p className="text-indigo-400 font-medium text-sm">{price}</p>
+    <div className="bg-[#0e1022]/80 p-8 rounded-xl border border-[#1e2338] hover:bg-[#161a2a]/90 hover:-translate-y-2 transition-all duration-300 shadow-lg shadow-indigo-900/20 flex flex-col justify-between">
+      <div>
+        <h4 className="text-2xl font-semibold mb-4 text-white">{title}</h4>
+        <p className="text-gray-400 mb-4 text-sm">{desc}</p>
+        <ul className="text-sm text-gray-500 list-disc pl-5 space-y-1 mb-4">
+          {points.map((p, i) => (
+            <li key={i}>{p}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Learn more button */}
+      <button
+        onClick={() => smoothScroll("#contact")}
+        className="mt-4 text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-2 transition-all duration-300"
+      >
+        Learn more <span className="text-lg">→</span>
+      </button>
     </div>
   );
 }
