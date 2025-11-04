@@ -8,12 +8,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="bg-gradient-to-b from-[#04020a] via-[#0a0a1f] to-[#050312] text-white font-sans">
+    <html lang="en" className="scroll-smooth" data-theme="light">
+      {/* Switched to a light theme site-wide */}
+      <body className="bg-white text-slate-900 font-sans antialiased">
         {children}
-        <Analytics /> {/* 👈 Enables Vercel visitor analytics */}
+        <Analytics /> {/* Vercel visitor analytics */}
 
-        {/* 👇 Chatbase Chatbot Embed */}
+        {/* Chatbase Chatbot Embed (kept, works with the new light theme) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -41,12 +42,29 @@ export default function RootLayout({ children }) {
                 else {window.addEventListener("load", onLoad)}
               })();
 
-              // 👇 Helps Chatbase remember session context (fixes 'Load recent conversations')
+              // Help Chatbase remember session context (fixes 'Load recent conversations')
               window.addEventListener("load", () => {
                 if (window.chatbase) {
                   window.chatbase('setUserId', Date.now().toString());
                 }
               });
+            `,
+          }}
+        />
+
+        {/* Smoothly handle cross-page hash links (e.g., /pricing -> /#contact) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                if (location.hash) {
+                  const el = document.querySelector(location.hash);
+                  if (el) {
+                    // Wait until layout paints, then smooth scroll
+                    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+                  }
+                }
+              })();
             `,
           }}
         />
