@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/prismadb";
 import { openai } from "@/lib/openai";
 
 export const dynamic = "force-dynamic";
