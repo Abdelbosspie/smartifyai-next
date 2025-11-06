@@ -77,8 +77,8 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <header className="border-b bg-white">
-        <div className="px-8 py-3">
-          <h2 className="text-2xl font-semibold mb-4">Dashboard</h2>
+        <div className="pl-6 pr-4 py-4 flex items-center">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h2>
         </div>
       </header>
 
