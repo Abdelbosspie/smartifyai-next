@@ -1,39 +1,42 @@
-import { prisma } from "@/lib/prismadb";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-export async function POST(req) {
+const prisma = new PrismaClient();
+
+// GET all agents
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    const body = await req.json();
-    const { name, type, voice, phone } = body;
-
-    // Basic validation
-    if (!name || !type) {
-      return new Response("Missing required fields", { status: 400 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    const agents = await prisma.agent.findMany({
+      orderBy: { createdAt: "desc" },
     });
+    return NextResponse.json(agents);
+  } catch (error) {
+    console.error("GET /agents error:", error);
+    return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
+  }
+}
 
-    const agent = await prisma.agent.create({
+// POST create a new agent
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { name, type, voice } = body;
+
+    if (!name) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    const newAgent = await prisma.agent.create({
       data: {
         name,
-        type,
-        voice: type === "voice" ? voice : null, // only save if type = voice
-        phone: type === "voice" ? phone : null,
-        userId: user.id,
+        type: type || "Chatbot",
+        voice: type === "Voice" ? voice || null : null,
       },
     });
 
-    return new Response(JSON.stringify(agent), { status: 201 });
+    return NextResponse.json(newAgent);
   } catch (error) {
-    console.error(error);
-    return new Response("Failed to create agent", { status: 500 });
+    console.error("POST /agents error:", error);
+    return NextResponse.json({ error: "Failed to create agent" }, { status: 500 });
   }
 }
