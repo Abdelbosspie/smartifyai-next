@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import { Providers } from "./providers";
 
 export const metadata = {
   title: "SmartifyAI",
@@ -11,8 +12,10 @@ export default function RootLayout({ children }) {
     <html lang="en" className="scroll-smooth" data-theme="light">
       {/* Switched to a light theme site-wide */}
       <body className="bg-white text-slate-900 font-sans antialiased">
-        {children}
-        <Analytics /> {/* Vercel visitor analytics */}
+        <Providers>
+          {children}
+          <Analytics /> {/* Vercel visitor analytics */}
+        </Providers>
 
         {/* Chatbase Chatbot Embed (kept, works with the new light theme) */}
         <script

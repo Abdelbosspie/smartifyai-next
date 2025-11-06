@@ -1,4 +1,5 @@
 "use client";
+"export const revalidate = false;\n"
 import React from "react";
 
 export default function Pricing() {
@@ -90,23 +91,33 @@ export default function Pricing() {
         {/* Center: Links */}
         <ul className="hidden md:flex gap-8 text-gray-600 absolute left-1/2 -translate-x-1/2">
           <li>
+            <a href="/#mission" className="hover:text-slate-900 transition-all duration-300">
+              Our Mission
+            </a>
+          </li>
+          <li>
             <a href="/#services" className="hover:text-slate-900 transition-all duration-300">
-              Features
+              Services
+            </a>
+          </li>
+          <li>
+            <a href="/#examples" className="hover:text-slate-900 transition-all duration-300">
+              Examples
             </a>
           </li>
           <li>
             <a href="/#whyus" className="hover:text-slate-900 transition-all duration-300">
-              How It Works
-            </a>
-          </li>
-          <li>
-            <a href="/pricing" className="hover:text-slate-900 transition-all duration-300">
-              Pricing
+              Why Us
             </a>
           </li>
           <li>
             <a href="/#faq" className="hover:text-slate-900 transition-all duration-300">
               FAQ
+            </a>
+          </li>
+          <li>
+            <a href="/pricing" className="hover:text-slate-900 transition-all duration-300">
+              Pricing
             </a>
           </li>
           <li>
@@ -158,9 +169,9 @@ export default function Pricing() {
                   )}
                 </div>
 
-                <div>
+                <div className="flex items-baseline gap-2">
                   <div className="text-slate-900 text-4xl font-bold leading-none tracking-tight">{plan.price}</div>
-                  <div className="text-sm text-gray-500 mt-2">per month</div>
+                  {plan.period && <span className="text-gray-500 text-base">{plan.period}</span>}
                 </div>
 
                 <a
@@ -171,7 +182,7 @@ export default function Pricing() {
                       : "border border-gray-400 text-slate-700 hover:border-indigo-500 hover:text-indigo-700"
                   }`}
                 >
-                  {plan.name === "Enterprise" ? "Contact Us" : plan.name === "Free" ? "Get Started" : "Subscribe"}
+                  {plan.name === "Enterprise" ? "Let's Talk" : plan.name === "Free" ? "Get Started" : "Subscribe"}
                 </a>
               </div>
 
