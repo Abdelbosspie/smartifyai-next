@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +18,7 @@ function StatCard({ label, value, sub }) {
   );
 }
 
-export default function DashboardPage() {
+export default function Page() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -78,14 +78,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <header className="border-b bg-white">
         <div className="mx-auto max-w-7xl px-6 py-3">
           <h2 className="text-sm font-medium text-gray-900">Dashboard</h2>
         </div>
       </header>
 
-      {/* KPI row */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         <StatCard label="Total Agents" value={stats.totalAgents} />
         <StatCard label="Total Messages" value={stats.totalMessages} />
@@ -93,9 +91,7 @@ export default function DashboardPage() {
         <StatCard label="Chat Agents" value={stats.chatAgents} />
       </section>
 
-      {/* Main content grid */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Left: agent list + actions */}
         <section className="col-span-12 xl:col-span-7 2xl:col-span-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg md:text-xl font-semibold text-gray-900">All Agents</h2>
@@ -150,7 +146,6 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* Right: live preview / stats */}
         <aside className="col-span-12 xl:col-span-5 2xl:col-span-4">
           <div className="rounded-xl border border-gray-200 bg-white">
             {selected ? (
@@ -158,7 +153,9 @@ export default function DashboardPage() {
             ) : (
               <div className="p-8 text-center text-gray-600">
                 <p className="font-medium">Select an agent to preview</p>
-                <p className="text-sm text-gray-500 mt-1">Pick an agent from the list to see its live preview here.</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Pick an agent from the list to see its live preview here.
+                </p>
               </div>
             )}
           </div>
