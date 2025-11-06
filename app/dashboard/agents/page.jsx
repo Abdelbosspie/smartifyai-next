@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import AgentCard from "../../components/AgentCard.jsx";
 
 export default function AgentsPage() {
+  const router = useRouter();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -74,6 +76,8 @@ export default function AgentsPage() {
       setShowForm(false);
       setForm({ name: "", type: "Chatbot", voice: "" });
       setSelectedId(created.id ?? null);
+      router.push(`/dashboard/agents/${created.id}/builder`);
+      return;
     } catch (err) {
       setError(err?.message || "Failed to create agent.");
     } finally {
