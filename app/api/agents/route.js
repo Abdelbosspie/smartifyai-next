@@ -16,14 +16,16 @@ export async function GET() {
   }
 }
 
-// POST create a new agent
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, type, voice } = body;
+    const { name, type, voice, userId } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    }
+    if (!userId) {
+      return NextResponse.json({ error: "User ID missing" }, { status: 400 });
     }
 
     const newAgent = await prisma.agent.create({
@@ -31,6 +33,7 @@ export async function POST(request) {
         name,
         type: type || "Chatbot",
         voice: type === "Voice" ? voice || null : null,
+        user: { connect: { id: userId } },
       },
     });
 
