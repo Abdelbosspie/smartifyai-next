@@ -5,9 +5,6 @@ import { useEffect, useState, Suspense } from "react";
 import { useSession, SessionProvider } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 /**
  * ========= HOW TO WIRE PLANS =========
  * Put your Stripe PRICE IDs in .env.local (client-side safe):
