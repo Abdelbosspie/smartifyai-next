@@ -1,50 +1,34 @@
-import prisma from "@/lib/prismadb";
-import { openai } from "@/lib/openai";
+import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// POST /api/chat  { agentId, message }
 export async function POST(req) {
   try {
-    const { agentId, content } = await req.json();
-    if (!agentId || !content) {
-      return new Response("agentId and content are required", { status: 400 });
+    const { agentId, message } = await req.json();
+    if (!message || !agentId) {
+      return NextResponse.json({ error: "agentId and message are required" }, { status: 400 });
     }
 
-    // Save user message
-    const userMsg = await prisma.message.create({
-      data: { agentId, role: "user", content },
-    });
+    // (Optional) You could load the agent by id and use its system prompt/voice here.
+    // For now we just send a simple system prompt.
+    const system = `You are an assistant for agent ${agentId}. Reply briefly and helpfully.`;
 
-    // Pull a small recent history for context
-    const history = await prisma.message.findMany({
-      where: { agentId },
-      orderBy: { createdAt: "asc" },
-      take: 30,
-    });
-
-    const messages = history.map(m => ({
-      role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
-      content: m.content,
-    }));
-
-    // Call OpenAI using the SDK
-    const data = await openai.chat.completions.create({
+    // Use the Chat Completions API for maximum model compatibility
+    const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: message },
+      ],
       temperature: 0.7,
     });
 
-    const reply = data?.choices?.[0]?.message?.content ?? "…";
-
-    // Save assistant message
-    const assistantMsg = await prisma.message.create({
-      data: { agentId, role: "assistant", content: reply },
-    });
-
-    return Response.json({ reply, id: assistantMsg.id });
-  } catch (e) {
-    console.error(e);
-    return new Response("Server error", { status: 500 });
+    const assistant = completion.choices?.[0]?.message?.content ?? "…";
+    return NextResponse.json({ assistant });
+  } catch (err) {
+    console.error("POST /api/chat error:", err);
+    return NextResponse.json({ error: "Failed to get a reply" }, { status: 500 });
   }
 }

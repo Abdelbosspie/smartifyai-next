@@ -218,7 +218,7 @@ export default function AgentsPage() {
           {!selected ? (
             <div className="text-sm text-gray-500">No agent selected.</div>
           ) : (
-            <AgentPreview agent={selected} />
+            <ChatPanel agent={selected} />
           )}
         </div>
       </div>
@@ -249,6 +249,106 @@ function AgentPreview({ agent }) {
             Updated {new Date(agent.updatedAt).toLocaleString()}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ChatPanel({ agent }) {
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: `You're chatting with ${agent?.name ?? "your agent"}.`,
+    },
+  ]);
+
+  async function send() {
+    const text = input.trim();
+    if (!text || sending) return;
+
+    // optimistic user bubble
+    const userMsg = { id: `${Date.now()}-u`, role: "user", content: text };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setSending(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: agent?.id, message: text }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Chat failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      const reply =
+        (typeof data?.reply === "string" && data.reply) ||
+        (typeof data?.message === "string" && data.message) ||
+        "…";
+
+      const botMsg = { id: `${Date.now()}-a`, role: "assistant", content: reply };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      const errMsg = {
+        id: `${Date.now()}-e`,
+        role: "assistant",
+        content: "Sorry — I couldn't reply. Please try again.",
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  }
+
+  return (
+    <div className="flex h-[420px] flex-col">
+      <div className="mb-2 text-xs text-gray-500">
+        Start the conversation with <span className="font-medium">{agent?.name}</span>.
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+              m.role === "user"
+                ? "ml-auto bg-indigo-600 text-white"
+                : "bg-white text-gray-900 border border-gray-200"
+            }`}
+          >
+            {m.content}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={`Message ${agent?.name ?? "agent"}...`}
+          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
+        />
+        <button
+          onClick={send}
+          disabled={sending || !input.trim()}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {sending ? "Sending…" : "Send"}
+        </button>
       </div>
     </div>
   );
