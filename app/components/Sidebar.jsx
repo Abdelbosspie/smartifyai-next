@@ -149,13 +149,21 @@ function SidebarAccountFooter({ user, loading }) {
     try {
       await signOut({ callbackUrl: "/login" });
     } catch {
-      // Fallback if NextAuth isn't wired
       window.location.href = "/login";
     }
   }
 
   return (
-    <div className="mt-auto border-t p-3">
+    <div className="mt-auto border-t p-3 space-y-3">
+      {/* Home Page Link */}
+      <Link
+        href="/"
+        className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-indigo-700 transition"
+      >
+        Home Page
+      </Link>
+
+      {/* User Info */}
       <div className="flex items-center gap-3">
         <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gray-100">
           {avatar ? (
@@ -178,7 +186,8 @@ function SidebarAccountFooter({ user, loading }) {
         </div>
       </div>
 
-      <div className="mt-3">
+      {/* Logout Button */}
+      <div>
         <button
           onClick={handleLogout}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-gray-300"
