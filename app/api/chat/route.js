@@ -1,34 +1,78 @@
-import OpenAI from "openai";
+// app/api/chat/route.js
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const prisma = new PrismaClient();
 
-// POST /api/chat  { agentId, message }
 export async function POST(req) {
   try {
-    const { agentId, message } = await req.json();
-    if (!message || !agentId) {
-      return NextResponse.json({ error: "agentId and message are required" }, { status: 400 });
+    // 0) Validate env
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Server missing OPENAI_API_KEY" },
+        { status: 500 }
+      );
     }
 
-    // (Optional) You could load the agent by id and use its system prompt/voice here.
-    // For now we just send a simple system prompt.
-    const system = `You are an assistant for agent ${agentId}. Reply briefly and helpfully.`;
+    // 1) Auth (same-origin fetch will include cookies)
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Use the Chat Completions API for maximum model compatibility
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: message },
-      ],
-      temperature: 0.7,
+    // 2) Parse body
+    const { agentId, message } = await req.json().catch(() => ({}));
+    if (!agentId || !message) {
+      return NextResponse.json(
+        { error: "Missing agentId or message" },
+        { status: 400 }
+      );
+    }
+
+    // 3) Ensure the agent belongs to this user
+    const agent = await prisma.agent.findFirst({
+      where: { id: agentId, user: { email: session.user.email } },
+      select: { id: true, name: true },
+    });
+    if (!agent) {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+
+    // 4) Persist user's message
+    await prisma.message.create({
+      data: { agentId, role: "user", content: message },
     });
 
-    const assistant = completion.choices?.[0]?.message?.content ?? "…";
-    return NextResponse.json({ assistant });
+    // 5) Call OpenAI
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const res = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: [
+        { role: "system", content: `You are the "${agent.name}" chatbot.` },
+        { role: "user", content: message },
+      ],
+    });
+
+    const reply =
+      res.output_text?.trim() ||
+      res.content?.[0]?.text?.trim() ||
+      "…";
+
+    // 6) Persist assistant reply
+    await prisma.message.create({
+      data: { agentId, role: "assistant", content: reply },
+    });
+
+    return NextResponse.json({ reply });
   } catch (err) {
     console.error("POST /api/chat error:", err);
-    return NextResponse.json({ error: "Failed to get a reply" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server error", detail: String(err?.message ?? err) },
+      { status: 500 }
+    );
   }
 }
