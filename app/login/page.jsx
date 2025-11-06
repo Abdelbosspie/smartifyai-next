@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/dashboard");
+      router.push("/dashboard");
     }
   }, [status, router]);
 
@@ -23,10 +23,16 @@ export default function LoginPage() {
     const email = e.currentTarget.email.value.trim();
     const password = e.currentTarget.password.value;
 
+    if (!email || !password) {
+      setErr("Please enter both email and password.");
+      setLoading(false);
+      return;
+    }
+
     const res = await signIn("credentials", {
+      redirect: false,
       email,
       password,
-      redirect: false,
     });
 
     setLoading(false);
@@ -35,8 +41,10 @@ export default function LoginPage() {
       setErr("Invalid email or password.");
       return;
     }
-    // success
-    window.location.href = "/dashboard";
+
+    if (res?.ok) {
+      router.push("/dashboard");
+    }
   };
 
   return (
