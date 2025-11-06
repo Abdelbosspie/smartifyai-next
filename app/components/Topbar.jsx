@@ -1,46 +1,49 @@
 "use client";
 
-import { Suspense } from "react";
-import { getCurrentUser } from "../../lib/session";
-import { redirect } from "next/navigation";
-import { DashboardShell } from "../../components/DashboardShell";
-import { Overview } from "../../components/Overview";
-import { RecentOrders } from "../../components/RecentOrders";
-import { DashboardHeader } from "../../components/DashboardHeader";
-import { Card } from "../../components/ui/card";
-import { Skeleton } from "../../components/ui/skeleton";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+export default function Topbar() {
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
+  const authed = status === "authenticated";
 
   return (
-    <DashboardShell>
-      <div className="w-full min-h-screen bg-gray-50 flex flex-col px-6 py-4 space-y-6">
-        <DashboardHeader heading="Dashboard" text="Overview of your account" />
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-7xl mx-auto w-full">
-          <Overview />
-        </section>
-        <div className="grid grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
-          <Suspense
-            fallback={
-              <Card className="col-span-12 md:col-span-8 space-y-2">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </Card>
-            }
-          >
-            {/* @ts-expect-error Server Component */}
-            <RecentOrders />
-          </Suspense>
+    <header className="sticky top-0 z-40 border-b bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-end px-6 py-3">
+        {/* Right: minimal auth-aware actions */}
+        <div className="flex items-center gap-4">
+          {authed ? (
+            <>
+              {/* Show dashboard button if not already on dashboard */}
+              {!pathname?.startsWith("/dashboard") && (
+                <Link
+                  href="/dashboard"
+                  className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
+                >
+                  Dashboard
+                </Link>
+              )}
+            </>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
+              >
+                Try for free
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-lg border px-6 py-2.5 text-sm font-medium hover:bg-gray-50 transition-all"
+              >
+                Log in
+              </Link>
+            </>
+          )}
         </div>
       </div>
-    </DashboardShell>
+    </header>
   );
 }

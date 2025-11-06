@@ -78,7 +78,7 @@ export default function Page() {
     <div className="space-y-6">
       <header className="border-b bg-white">
         <div className="mx-auto max-w-7xl px-6 py-3">
-          <h2 className="text-sm font-medium text-gray-900">Dashboard</h2>
+          <h2 className="text-left text-2xl font-semibold mb-4 ml-2">Dashboard</h2>
         </div>
       </header>
 
