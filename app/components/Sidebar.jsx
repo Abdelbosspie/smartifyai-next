@@ -186,6 +186,8 @@ function SidebarAccountFooter({ user, loading }) {
         </div>
       </div>
 
+      
+
       {/* Logout Button */}
       <div>
         <button

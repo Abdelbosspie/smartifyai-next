@@ -56,10 +56,14 @@ export default function AgentsPage() {
 
     setCreating(true);
     try {
+      const payload = { name: form.name, type: form.type };
+      if (form.type === "Voice") {
+        payload.voice = form.voice;
+      }
       const res = await fetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -142,17 +146,19 @@ export default function AgentsPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700">
-                Voice (optional)
-              </label>
-              <input
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
-                placeholder="e.g., Allura"
-                value={form.voice}
-                onChange={(e) => setForm((f) => ({ ...f, voice: e.target.value }))}
-              />
-            </div>
+            {form.type === "Voice" && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700">
+                  Voice (optional)
+                </label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                  placeholder="e.g., Allura"
+                  value={form.voice}
+                  onChange={(e) => setForm((f) => ({ ...f, voice: e.target.value }))}
+                />
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-3">

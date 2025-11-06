@@ -1,36 +1,39 @@
-import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../../lib/auth";
-import db from "../../../lib/prismadb";
+import { authOptions } from "@/lib/auth";
 
-// GET /api/agents  -> list current user's agents
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) return NextResponse.json({ agents: [] });
-
-  const agents = await db.agent.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-  });
-
-  return NextResponse.json({ agents });
-}
-
-// POST /api/agents  -> create new agent
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.email) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
-  const body = await req.json();
-  const name = (body?.name || "New Agent").toString().slice(0, 60);
-  const type = (body?.type || "Chatbot").toString().slice(0, 30);
-  const voice = (body?.voice || "Default").toString().slice(0, 30);
+    const body = await req.json();
+    const { name, type, voice, phone } = body;
 
-  const agent = await db.agent.create({
-    data: { name, type, voice, userId },
-  });
+    // Basic validation
+    if (!name || !type) {
+      return new Response("Missing required fields", { status: 400 });
+    }
 
-  return NextResponse.json({ agent }, { status: 201 });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    const agent = await prisma.agent.create({
+      data: {
+        name,
+        type,
+        voice: type === "voice" ? voice : null, // only save if type = voice
+        phone: type === "voice" ? phone : null,
+        userId: user.id,
+      },
+    });
+
+    return new Response(JSON.stringify(agent), { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return new Response("Failed to create agent", { status: 500 });
+  }
 }
