@@ -1,17 +1,6 @@
 import "../styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
-import { Providers } from "./providers";
 import Providers from "./providers";
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
-}
 
 export const metadata = {
   title: "SmartifyAI",
@@ -21,14 +10,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="scroll-smooth" data-theme="light">
-      {/* Switched to a light theme site-wide */}
       <body className="bg-white text-slate-900 font-sans antialiased">
         <Providers>
           {children}
           <Analytics /> {/* Vercel visitor analytics */}
         </Providers>
 
-        {/* Chatbase Chatbot Embed (kept, works with the new light theme) */}
+        {/* Chatbase Chatbot Embed */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -56,7 +44,6 @@ export default function RootLayout({ children }) {
                 else {window.addEventListener("load", onLoad)}
               })();
 
-              // Help Chatbase remember session context (fixes 'Load recent conversations')
               window.addEventListener("load", () => {
                 if (window.chatbase) {
                   window.chatbase('setUserId', Date.now().toString());
@@ -66,7 +53,7 @@ export default function RootLayout({ children }) {
           }}
         />
 
-        {/* Smoothly handle cross-page hash links (e.g., /pricing -> /#contact) */}
+        {/* Smooth scroll handler */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -74,7 +61,6 @@ export default function RootLayout({ children }) {
                 if (location.hash) {
                   const el = document.querySelector(location.hash);
                   if (el) {
-                    // Wait until layout paints, then smooth scroll
                     setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
                   }
                 }
