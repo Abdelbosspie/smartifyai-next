@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+
+import { useEffect, useState, Suspense } from "react";
+import { useSession, SessionProvider } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * ========= HOW TO WIRE PLANS =========
@@ -51,7 +55,7 @@ const PLAN_CARDS = [
   },
 ];
 
-export default function BillingPage() {
+function BillingContent() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -370,6 +374,15 @@ export default function BillingPage() {
   );
 }
 
+export default function BillingPage() {
+  return (
+    <SessionProvider>
+      <Suspense fallback={<div />}>
+        <BillingContent />
+      </Suspense>
+    </SessionProvider>
+  );
+}
 function Stat({ label, value, loading }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">

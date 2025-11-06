@@ -1,93 +1,65 @@
-import { NextResponse } from "next/server";
+export const runtime = "nodejs";
+
 import Stripe from "stripe";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../../lib/auth"; // adjust if your alias differs
+import { authOptions } from "../../../lib/auth";
 
-const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET;
-const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
+async function getOrCreateCustomer(stripe, email) {
+  if (!email) return undefined;
+  const existing = await stripe.customers.list({ email, limit: 1 });
+  if (existing.data.length) return existing.data[0].id;
+  const created = await stripe.customers.create({ email });
+  return created.id;
+}
 
 export async function POST(req) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET;
+  if (!stripeKey) return new Response(JSON.stringify({ error: "Stripe not configured" }), { status: 500 });
+
+  const stripe = new Stripe(stripeKey, { apiVersion: "2024-06-20" });
+
+  let body = {};
   try {
-    if (!stripeKey) {
-      return NextResponse.json({ error: "Stripe is not configured." }, { status: 500 });
-    }
+    body = await req.json();
+  } catch {}
+  const { action, priceId } = body;
 
-    const session = await getServerSession(authOptions).catch(() => null);
-    const body = await req.json().catch(() => ({}));
-    const { action = "checkout", priceId, productId } = body;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || req.headers.get("origin") || "http://localhost:3000";
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email || undefined;
 
-    const headers = Object.fromEntries(req.headers);
-    const origin = headers["origin"] || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const email = session?.user?.email;
+  if (action === "portal") {
+    // Billing portal requires a customer ID (not email)
+    const customer = await getOrCreateCustomer(stripe, email);
+    if (!customer) return Response.json({ error: "No customer" }, { status: 400 });
 
-    // Open Billing Portal
-    if (action === "portal") {
-      if (!email) {
-        return NextResponse.json({ error: "Sign in required to manage billing." }, { status: 401 });
-      }
-      // Find or create a customer by email
-      let customerId;
-      const existing = await stripe.customers.list({ email, limit: 1 });
-      if (existing?.data?.length) {
-        customerId = existing.data[0].id;
-      } else {
-        const created = await stripe.customers.create({ email });
-        customerId = created.id;
-      }
-      const portal = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${origin}/dashboard/billing`,
-      });
-      return NextResponse.json({ url: portal.url });
-    }
+    const portal = await stripe.billingPortal.sessions.create({
+      customer,
+      return_url: `${origin}/dashboard/billing`,
+    });
+    return Response.json({ url: portal.url });
+  }
 
-    // Resolve the price to use for Checkout
-    let finalPriceId = priceId;
+  if (action === "checkout") {
+    const finalPriceId =
+      priceId ||
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_HOBBY ||
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_STANDARD ||
+      process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO;
 
-    // If only productId provided, resolve its default or first recurring active price
-    if (!finalPriceId && productId) {
-      const product = await stripe.products.retrieve(productId);
-      if (product?.default_price) {
-        finalPriceId =
-          typeof product.default_price === "string"
-            ? product.default_price
-            : product.default_price.id;
-      }
-      if (!finalPriceId) {
-        const prices = await stripe.prices.list({
-          product: productId,
-          active: true,
-          type: "recurring",
-          limit: 1,
-        });
-        finalPriceId = prices?.data?.[0]?.id || null;
-      }
-    }
-
-    // Fallback to env if nothing passed
-    if (!finalPriceId) {
-      finalPriceId = process.env.STRIPE_PRICE_ID || process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || null;
-    }
-
-    if (!finalPriceId) {
-      return NextResponse.json(
-        { error: "Missing priceId. Pass { priceId } (preferred), or set STRIPE_PRICE_ID." },
-        { status: 400 }
-      );
-    }
+    if (!finalPriceId) return Response.json({ error: "No STRIPE_PRICE_ID set." }, { status: 400 });
 
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: finalPriceId, quantity: 1 }],
       allow_promotion_codes: true,
-      customer_email: email, // ok if undefined
+      customer_email: email,
       success_url: `${origin}/dashboard/billing?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/dashboard/billing?canceled=1`,
     });
 
-    return NextResponse.json({ url: checkout.url });
-  } catch (e) {
-    console.error("/api/checkout error", e);
-    return NextResponse.json({ error: "Failed to start billing flow." }, { status: 500 });
+    return Response.json({ url: checkout.url });
   }
+
+  return Response.json({ error: "Unsupported action" }, { status: 400 });
 }

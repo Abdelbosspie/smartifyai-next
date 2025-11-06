@@ -1,8 +1,10 @@
 "use client";
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import { useEffect, useMemo, useState } from "react";
-import AgentCard from "../components/AgentCard";
-import PreviewPanel from "../components/PreviewPanel";
+import AgentCard from "../../components/AgentCard";
+import PreviewPanel from "../../components/PreviewPanel";
 
 function StatCard({ label, value, sub }) {
   return (
