@@ -4,8 +4,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prismadb";
 import OpenAI from "openai";
 
-const openai =
-  process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 async function getUserId(session) {
   if (session?.user?.id) return session.user.id;
@@ -32,16 +33,16 @@ export async function POST(req) {
 
     const agent = await prisma.agent.findFirst({
       where: { id: agentId, userId },
-      select: { name: true, type: true, prompt: true },
+      select: { name: true, type: true, voice: true }, // ← no 'prompt'
     });
     if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
 
-    // Fallback if no OpenAI key present — prevents 500s
+    // If no OpenAI key, return a harmless echo so UI never crashes
     if (!openai) {
-      return NextResponse.json({ reply: `(${agent.name}) ${message}` });
+      return NextResponse.json({ reply: `${agent.name}: ${message}` });
     }
 
-    const system = agent.prompt?.trim() || `You are ${agent.name}, a helpful assistant.`;
+    const system = `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "chatbot"}.`;
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -51,8 +52,7 @@ export async function POST(req) {
       temperature: 0.7,
     });
 
-    const reply =
-      completion.choices?.[0]?.message?.content?.trim() || "…";
+    const reply = completion.choices?.[0]?.message?.content?.trim() || "…";
     return NextResponse.json({ reply });
   } catch (err) {
     console.error("/api/chat error:", err);
