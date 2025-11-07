@@ -1,45 +1,61 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prismadb";
 
-const prisma = new PrismaClient();
+// GET /api/agents/:id
+export async function GET(_req, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-// GET all agents
-export async function GET() {
-  try {
-    const agents = await prisma.agent.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(agents);
-  } catch (error) {
-    console.error("GET /agents error:", error);
-    return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
-  }
+  const agent = await prisma.agent.findFirst({
+    where: { id: params.id, userId: session.user.id },
+    select: { id: true, name: true, type: true, voice: true, instructions: true, updatedAt: true },
+  });
+  if (!agent) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(agent);
 }
 
-export async function POST(request) {
-  try {
-    const body = await request.json();
-    const { name, type, voice } = body;
+// PATCH /api/agents/:id  (save prompt / fields)
+export async function PATCH(req, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    }
+  // ensure ownership
+  const owner = await prisma.agent.findFirst({
+    where: { id: params.id, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!owner) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 👇 Hardcode your test user ID here from your database
-    const testUserId = "cmho19hik0000l704h0v21y5v";
+  const body = await req.json().catch(() => ({}));
+  const { name, type, voice, instructions } = body;
 
-    const newAgent = await prisma.agent.create({
-      data: {
-        name,
-        type: type || "Chatbot",
-        voice: type === "Voice" ? voice || null : null,
-        user: { connect: { id: testUserId } }, // ✅ This line links the Agent to a user
-      },
-    });
+  const updated = await prisma.agent.update({
+    where: { id: params.id },
+    data: {
+      ...(name !== undefined ? { name } : {}),
+      ...(type !== undefined ? { type } : {}),
+      ...(voice !== undefined ? { voice } : {}),
+      ...(instructions !== undefined ? { instructions } : {}),
+    },
+    select: { id: true, name: true, type: true, voice: true, instructions: true, updatedAt: true },
+  });
 
-    return NextResponse.json(newAgent);
-  } catch (error) {
-    console.error("POST /agents error:", error);
-    return NextResponse.json({ error: "Failed to create agent" }, { status: 500 });
-  }
+  return NextResponse.json({ success: true, agent: updated });
+}
+
+// (optional) DELETE /api/agents/:id
+export async function DELETE(_req, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const owner = await prisma.agent.findFirst({
+    where: { id: params.id, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!owner) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.agent.delete({ where: { id: params.id } });
+  return NextResponse.json({ success: true });
 }
