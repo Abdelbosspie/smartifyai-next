@@ -1,56 +1,82 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prismadb";
+import { prisma } from "@/lib/prisma";
 
-export async function POST(req, { params }) {
+// Tiny helper – mirror your other routes’ approach.
+async function requireUser() {
+  const session = await getServerSession();
+  if (!session?.user?.email) return null;
+  const user = await prisma.user.findUnique({ where: { email: session.user.email }});
+  return user;
+}
+
+// GET /api/agents/:id/knowledge  -> list entries
+export async function GET(req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { id } = params;
-    const { title, content } = await req.json();
-
-    if (!content)
-      return NextResponse.json({ error: "Content required" }, { status: 400 });
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
-    });
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const agent = await prisma.agent.findFirst({
-      where: { id, userId: user.id },
+      where: { id: params.id, userId: user.id },
     });
-    if (!agent)
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
 
-    const entry = await prisma.knowledge.create({
-      data: {
-        agentId: id,
-        title: title || "Untitled",
-        content,
-      },
+    const entries = await prisma.knowledge.findMany({
+      where: { agentId: agent.id },
+      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(entry);
-  } catch (err) {
-    console.error("Error adding knowledge:", err);
-    return NextResponse.json({ error: "Failed to save knowledge" }, { status: 500 });
+    return NextResponse.json(entries);
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal" }, { status: 500 });
   }
 }
 
-export async function GET(req, { params }) {
+// POST /api/agents/:id/knowledge  -> add manual text OR a URL
+export async function POST(req, { params }) {
   try {
-    const { id } = params;
-    const entries = await prisma.knowledge.findMany({
-      where: { agentId: id },
-      orderBy: { createdAt: "desc" },
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const agent = await prisma.agent.findFirst({
+      where: { id: params.id, userId: user.id },
     });
-    return NextResponse.json(entries);
-  } catch (err) {
-    console.error("GET /knowledge error:", err);
-    return NextResponse.json({ error: "Failed to load knowledge" }, { status: 500 });
+    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+
+    const body = await req.json();
+    const { kind = "text", title = "", content = "", url = "" } = body || {};
+
+    if (kind === "url") {
+      if (!url?.startsWith("http")) {
+        return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+      }
+      const saved = await prisma.knowledge.create({
+        data: {
+          agentId: agent.id,
+          kind: "url",
+          title: title || "Link",
+          sourceUrl: url,
+        },
+      });
+      return NextResponse.json(saved);
+    }
+
+    // default: text
+    if (!content?.trim()) {
+      return NextResponse.json({ error: "Missing content" }, { status: 400 });
+    }
+    const saved = await prisma.knowledge.create({
+      data: {
+        agentId: agent.id,
+        kind: "text",
+        title: title || "Note",
+        content,
+      },
+    });
+    return NextResponse.json(saved);
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal" }, { status: 500 });
   }
 }

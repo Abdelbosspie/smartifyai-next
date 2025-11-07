@@ -129,5 +129,13 @@ model Knowledge {
   title     String?
   content   String? // extracted text
   fileUrl   String?
+  // classify and hold metadata for different knowledge sources
+  kind      String   @default("text") // "text" | "file" | "url"
+  sourceUrl String?  // for URL entries
+  fileName  String?  // original filename for uploads
+  mimeType  String?  // mime type for uploads
+  size      Int?     // file size in bytes
   createdAt DateTime @default(now())
+
+  @@index([agentId, createdAt])
 }

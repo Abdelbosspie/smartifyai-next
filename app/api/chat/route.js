@@ -10,6 +10,28 @@ const openai =
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null;
 
+/**
+ * Build a compact knowledge context string from recent knowledge entries.
+ * We include titles / sources and the first chunk of text from each entry.
+ */
+function buildKnowledgeContext(entries = [], maxChars = 8000) {
+  try {
+    const parts = [];
+    for (const k of entries) {
+      const label = k?.title || k?.fileName || k?.sourceUrl || k?.fileUrl || "Entry";
+      const text = (k?.content || k?.extractedText || "").toString();
+      const header = `### ${label}`;
+      const body = text.trim().length ? text.trim() : (k?.sourceUrl ? `See: ${k.sourceUrl}` : "(no extracted text)");
+      parts.push(`${header}\n${body}`);
+      // Stop if we are approaching the character budget
+      if (parts.join("\n---\n").length > maxChars) break;
+    }
+    return parts.join("\n---\n").slice(0, maxChars);
+  } catch {
+    return "";
+  }
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -26,28 +48,43 @@ export async function POST(req) {
       );
     }
 
-    // Fetch agent without requiring auth — prevents build/runtime errors from authOptions
-    const agent = await prisma.agent.findUnique({
-      where: { id: agentId },
-      include: {
-        knowledge: {
-          select: { content: true },
-          orderBy: { createdAt: "desc" },
-          take: 10,
+    // Fetch agent and most recent knowledge. We avoid auth lookups here so Live Preview works.
+    let agent = null;
+    let knowledge = [];
+    try {
+      agent = await prisma.agent.findUnique({
+        where: { id: agentId },
+        include: {
+          knowledge: {
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              kind: true,
+              mimeType: true,
+              fileUrl: true,
+              fileName: true,
+              sourceUrl: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+            take: 12,
+          },
         },
-      },
-    });
+      });
+      knowledge = agent?.knowledge || [];
+    } catch (e) {
+      // If the Knowledge table doesn't exist yet or any other read error occurs,
+      // keep going without KB rather than failing the chat.
+      knowledge = [];
+    }
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Build knowledge context (safe if table is empty or missing)
-    const knowledgeText = (agent.knowledge || [])
-      .map((k) => k.content)
-      .filter(Boolean)
-      .join("\n---\n")
-      .slice(0, 8000);
+    // Build knowledge context (safe if table is empty/missing)
+    const knowledgeText = buildKnowledgeContext(knowledge, 8000);
 
     const language = agent.language || "English";
 
@@ -55,7 +92,7 @@ export async function POST(req) {
     const systemPrompt = [
       `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "assistant"}.`,
       agent.prompt ? `Custom instructions:\n${agent.prompt}` : "",
-      knowledgeText ? `Knowledge base:\n${knowledgeText}` : "",
+      knowledgeText ? `Knowledge base (most recent first):\n${knowledgeText}` : "",
       language === "Multilingual"
         ? "Reply in the user's language. If unclear, default to English."
         : `Always reply in ${language}.`,
@@ -81,8 +118,9 @@ export async function POST(req) {
     let replyText = "";
     if (openai) {
       try {
+        const model = agent.model || "gpt-3.5-turbo"; // default if none chosen yet
         const resp = await openai.chat.completions.create({
-          model: agent.model || "gpt-3.5-turbo",
+          model,
           messages: chatMessages,
           temperature: 0.7,
         });
@@ -99,7 +137,10 @@ export async function POST(req) {
       const lastUser =
         messageList?.slice().reverse().find((m) => m.role !== "assistant")
           ?.content ?? singleMessage ?? "";
-      replyText = `✅ Live preview is working. (OpenAI unavailable here.) Echo: ${lastUser}`;
+      replyText = `✅ Live preview is working. (OpenAI unavailable here.)\n\nEcho: ${lastUser}`;
+      if (knowledgeText) {
+        replyText += `\n\n(Used ${knowledge.length} knowledge entr${knowledge.length === 1 ? "y" : "ies"} as context.)`;
+      }
     }
 
     // We intentionally skip saving messages here to avoid foreign-key issues (no userId in preview).

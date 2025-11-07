@@ -2,6 +2,37 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 
+const LANGS = [
+  "Multilingual",
+  "English",
+  "Arabic",
+  "Spanish",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Turkish",
+  "Dutch",
+  "Polish",
+  "Russian",
+  "Chinese (Simplified)",
+  "Chinese (Traditional)",
+  "Japanese",
+  "Korean",
+  "Hindi",
+  "Urdu",
+  "Thai",
+  "Vietnamese",
+  "Indonesian",
+  "Malay",
+  "Greek",
+  "Czech",
+  "Swedish",
+  "Danish",
+  "Norwegian",
+  "Finnish",
+];
+
 // --- Builder Page Header ---
 function BuilderPageHeader() {
   const { data: session } = useSession();
@@ -45,6 +76,30 @@ function KnowledgeBase({ agent }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [urlValue, setUrlValue] = useState("");
+  const [savingUrl, setSavingUrl] = useState(false);
+  const [language, setLanguage] = useState(agent?.language || "English");
+  const [savingLang, setSavingLang] = useState(false);
+
+  async function saveLanguage() {
+    setSavingLang(true);
+    try {
+      const res = await fetch(`/api/agents/${agent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Failed to save language");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Failed to save language");
+    } finally {
+      setSavingLang(false);
+    }
+  }
 
   // Fetch existing knowledge entries
   useEffect(() => {
@@ -84,7 +139,7 @@ function KnowledgeBase({ agent }) {
     }
   }
 
-  // File upload (PDF)
+  // File upload (PDF/DOCX/PPTX, etc.)
   async function handleFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,16 +149,52 @@ function KnowledgeBase({ agent }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      // You’ll later implement PDF upload in /api/upload
-      const res = await fetch(`/api/upload`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      alert(`File processed: ${data.filename}`);
+      // New API: agent-scoped upload endpoint
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Upload failed");
+      }
+
+      // The API returns the saved Knowledge row
+      const saved = await res.json();
+      setEntries((prev) => [saved, ...prev]);
     } catch (err) {
       console.error(err);
-      alert("Upload failed.");
+      setError(err?.message || "Upload failed.");
     } finally {
       setUploading(false);
+      // reset the file input so uploading the same file twice works
+      if (e?.target) e.target.value = "";
+    }
+  }
+
+  // Add URL knowledge
+  async function addUrl(e) {
+    e.preventDefault();
+    const url = urlValue.trim();
+    if (!url) return;
+
+    setSavingUrl(true);
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) throw new Error("Failed to add URL");
+      const saved = await res.json();
+      setEntries((prev) => [saved, ...prev]);
+      setUrlValue("");
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Failed to add URL");
+    } finally {
+      setSavingUrl(false);
     }
   }
 
@@ -113,6 +204,34 @@ function KnowledgeBase({ agent }) {
       <p className="text-sm text-gray-500">
         Add text entries or upload PDFs to train your agent.
       </p>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <label className="block text-xs font-medium text-gray-700 mb-2">Agent language</label>
+        <div className="flex items-center gap-3">
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="w-72 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          >
+            {LANGS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={saveLanguage}
+            disabled={savingLang}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {savingLang ? "Saving..." : "Save"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          This controls the default language your agent replies in.
+        </p>
+      </div>
 
       {/* Add Entry */}
       <form onSubmit={addEntry} className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
@@ -130,7 +249,7 @@ function KnowledgeBase({ agent }) {
           onChange={(e) => setNewEntry({ ...newEntry, content: e.target.value })}
           className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
         />
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
           <button
             type="submit"
             disabled={loading}
@@ -139,15 +258,33 @@ function KnowledgeBase({ agent }) {
             {loading ? "Saving..." : "Add Entry"}
           </button>
 
-          <label className="cursor-pointer text-sm text-indigo-600 hover:underline">
-            {uploading ? "Uploading..." : "Upload PDF"}
+          <div className="flex items-center gap-2">
+            <label className="cursor-pointer text-sm text-indigo-600 hover:underline">
+              {uploading ? "Uploading..." : "Upload file"}
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+
             <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileUpload}
-              className="hidden"
+              type="url"
+              placeholder="https://example.com/knowledge"
+              value={urlValue}
+              onChange={(e) => setUrlValue(e.target.value)}
+              className="w-72 rounded-md border border-gray-200 px-3 py-2 text-sm"
             />
-          </label>
+            <button
+              type="button"
+              onClick={addUrl}
+              disabled={savingUrl || !urlValue.trim()}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm disabled:opacity-60"
+            >
+              {savingUrl ? "Adding..." : "Add URL"}
+            </button>
+          </div>
         </div>
       </form>
 
@@ -159,12 +296,33 @@ function KnowledgeBase({ agent }) {
               key={e.id}
               className="rounded-lg border border-gray-200 bg-white p-3 text-sm"
             >
-              <div className="font-medium text-gray-800">{e.title}</div>
-              <div className="text-gray-600 text-xs whitespace-pre-wrap mt-1">
-                {e.content.length > 300
-                  ? e.content.slice(0, 300) + "..."
-                  : e.content}
+              <div className="font-medium text-gray-800">
+                {e.title || e.fileName || e.sourceUrl || "Untitled"}
               </div>
+              {e.kind && (
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  {e.kind.toUpperCase()} {e.mimeType ? `• ${e.mimeType}` : ""}{" "}
+                  {typeof e.size === "number" ? `• ${(e.size / 1024).toFixed(1)} KB` : ""}
+                </div>
+              )}
+              {e.kind === "text" ? (
+                <div className="text-gray-600 text-xs whitespace-pre-wrap mt-1">
+                  {(e.content || "").length > 300
+                    ? (e.content || "").slice(0, 300) + "..."
+                    : e.content || ""}
+                </div>
+              ) : (
+                e.sourceUrl && (
+                  <a
+                    href={e.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-indigo-600 hover:underline break-all mt-1 inline-block"
+                  >
+                    {e.sourceUrl}
+                  </a>
+                )
+              )}
             </div>
           ))}
         </div>
