@@ -100,6 +100,38 @@ export default function AgentsPage() {
     }
   }
 
+  function handleEdit(agent) {
+    if (!agent?.id) return;
+    router.push(`/dashboard/agents/${agent.id}/builder`);
+  }
+
+  async function handleDelete(agent) {
+    try {
+      if (!agent?.id) return;
+      const phrase = typeof window !== "undefined"
+        ? window.prompt('Type "delete-my-agent" to confirm deletion of this agent:')
+        : null;
+      if (phrase !== "delete-my-agent") return;
+
+      const res = await fetch(`/api/agents/${agent.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Failed to delete agent");
+      }
+
+      // Remove locally
+      setAgents((prev) => prev.filter((a) => a.id !== agent.id));
+      // Clear selection; the effect below will auto-select the first item if available
+      setSelectedId((cur) => (cur === agent.id ? null : cur));
+      if (typeof window !== "undefined") {
+        window.alert("Agent deleted.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Failed to delete agent.");
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -233,6 +265,8 @@ export default function AgentsPage() {
                     agent={agent}
                     active={selected?.id === agent.id}
                     onSelect={() => setSelectedId(agent.id)}
+                    onEdit={() => handleEdit(agent)}
+                    onDelete={() => handleDelete(agent)}
                   />
                 ))}
               </div>

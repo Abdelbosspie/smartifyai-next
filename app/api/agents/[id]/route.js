@@ -36,3 +36,46 @@ export async function GET(req, { params }) {
     return NextResponse.json({ error: "Failed to load agent" }, { status: 500 });
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params || {};
+    if (!id) {
+      return NextResponse.json({ error: "Missing agent id" }, { status: 400 });
+    }
+
+    // Resolve the current user
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Ensure the agent belongs to this user
+    const agent = await prisma.agent.findFirst({
+      where: { id, userId: user.id },
+      select: { id: true },
+    });
+    if (!agent) {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+
+    // Best-effort cleanup of related data (for setups without ON DELETE CASCADE)
+    await prisma.message.deleteMany({ where: { agentId: id } }).catch(() => {});
+    await prisma.knowledge.deleteMany({ where: { agentId: id } }).catch(() => {});
+
+    await prisma.agent.delete({ where: { id } });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/agents/[id] error:", err);
+    return NextResponse.json({ error: "Failed to delete agent" }, { status: 500 });
+  }
+}
