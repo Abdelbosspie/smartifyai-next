@@ -1,13 +1,14 @@
 // app/api/agents/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismadb";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
-export const revalidate = 0; // no caching
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -17,10 +18,7 @@ export async function GET() {
       select: { id: true },
     });
 
-    if (!user) {
-      // first time ever — just return empty list instead of 500
-      return NextResponse.json([]);
-    }
+    if (!user) return NextResponse.json([]);
 
     const agents = await prisma.agent.findMany({
       where: { userId: user.id },
@@ -39,7 +37,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -61,7 +59,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    // Ensure a user row exists
+    // Ensure the user row exists
     const user = await prisma.user.upsert({
       where: { email: session.user.email },
       update: {},
@@ -78,7 +76,7 @@ export async function POST(req) {
         name: name.trim(),
         type,
         voice: type === "Voice" ? voice : null,
-        model: model || "gpt-3.5-turbo",         // matches your schema defaults
+        model: model || "gpt-3.5-turbo",
         language: language || "English",
         prompt: prompt ?? null,
         welcome: welcome ?? "Hi there! How can I help you?",
@@ -90,7 +88,6 @@ export async function POST(req) {
     return NextResponse.json(agent, { status: 201 });
   } catch (err) {
     console.error("POST /api/agents failed:", err);
-    // Surface Prisma errors clearly (FK, missing column, etc.)
     return NextResponse.json(
       { error: "Internal", details: err?.message ?? "unknown" },
       { status: 500 }
