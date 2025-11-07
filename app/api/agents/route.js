@@ -1,22 +1,20 @@
 // app/api/agents/route.js
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";            // <-- export your authOptions from a shared file
-import { prisma } from "@/lib/prismadb";             // <-- your singleton Prisma client
+import { prisma } from "@/lib/prismadb";
+import { auth } from "@/lib/auth"; // your NextAuth helper
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true },
   });
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 401 });
-  }
+
+  // If the user doesn't exist yet, just return empty list
+  if (!user) return NextResponse.json([]);
 
   const agents = await prisma.agent.findMany({
     where: { userId: user.id },
@@ -27,47 +25,53 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 401 });
   }
 
   const body = await req.json();
   const {
     name,
     type = "Chatbot",
-    voice,
-    prompt,
+    voice = null,
     model,
     language,
+    prompt,
     welcome,
     aiSpeaksFirst,
     dynamicMsgs,
-  } = body;
+  } = body || {};
 
-  const created = await prisma.agent.create({
-    data: {
-      name,
-      type,
-      // only keep voice if it's a voice agent
-      voice: type === "Voice" ? (voice ?? null) : null,
-      prompt: prompt ?? null,
-      model: model ?? "gpt-3.5-turbo",         // matches your Prisma default
-      language: language ?? "English",
-      welcome: welcome ?? undefined,           // let DB default apply
-      aiSpeaksFirst: Boolean(aiSpeaksFirst),
-      dynamicMsgs: Boolean(dynamicMsgs),
-      userId: user.id,                         // <-- THIS is the important part
+  if (!name?.trim()) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  }
+
+  // ✅ Ensure a User row exists for this session email
+  const user = await prisma.user.upsert({
+    where: { email: session.user.email },
+    update: {},
+    create: {
+      email: session.user.email,
+      name: session.user.name ?? session.user.email.split("@")[0],
     },
   });
 
-  return NextResponse.json(created, { status: 201 });
+  // Create the agent (safe defaults match your Prisma schema)
+  const agent = await prisma.agent.create({
+    data: {
+      name: name.trim(),
+      type,
+      voice: type === "Voice" ? voice : null,
+      model: model || "gpt-3.5-turbo",
+      language: language || "English",
+      prompt: prompt ?? null,
+      welcome: welcome ?? "Hi there! How can I help you?",
+      aiSpeaksFirst: aiSpeaksFirst ?? false,
+      dynamicMsgs: dynamicMsgs ?? false,
+      user: { connect: { id: user.id } },
+    },
+  });
+
+  return NextResponse.json(agent);
 }
