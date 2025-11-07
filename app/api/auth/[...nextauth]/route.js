@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '@/lib/prismadb'
 import { compare } from "bcryptjs";
 
 const prisma = new PrismaClient();
