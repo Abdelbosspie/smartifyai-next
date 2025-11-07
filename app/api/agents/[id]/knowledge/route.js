@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prismadb";
 
 // Tiny helper – mirror your other routes’ approach.
 async function requireUser() {
