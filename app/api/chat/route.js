@@ -41,7 +41,7 @@ export async function POST(req) {
     // No key? Just echo to avoid 500s.
     if (!openai) return NextResponse.json({ reply: `${agent.name}: ${message}` });
 
-    const system = `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "chatbot"}.`;
+    const system = `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "chatbot"} running on model gpt-4-turbo. When asked about your model, answer that you are gpt-4-turbo.`;
     const r = await openai.chat.completions.create({
       model: "gpt-4-turbo",
       messages: [
