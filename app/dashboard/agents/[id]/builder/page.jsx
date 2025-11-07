@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+
 import { Switch } from "@headlessui/react";
+import KnowledgeBasePanel from "@/components/KnowledgeBasePanel";
 
 export default function AgentBuilderPage() {
   const { id } = useParams();
@@ -108,7 +110,7 @@ export default function AgentBuilderPage() {
         {/* Main content */}
         <main className="flex-1 p-6 overflow-y-auto">
           {activeTab === "chat" && <ChatSettings agent={agent} setAgent={setAgent} />}
-          {activeTab === "knowledge" && <KnowledgeBase />}
+          {activeTab === "knowledge" && <KnowledgeBasePanel agent={agent} />}
           {activeTab === "functions" && <Functions />}
           {activeTab === "appearance" && <Appearance />}
         </main>
@@ -196,19 +198,11 @@ function ChatSettings({ agent, setAgent }) {
   );
 }
 
-// --- Placeholder Tabs ---
-function KnowledgeBase() {
-  return (
-    <div className="text-sm text-gray-500">
-      Upload or add documents to train your agent. (Coming soon)
-    </div>
-  );
-}
-
+// --- Functions Tab (temporary placeholder) ---
 function Functions() {
   return (
     <div className="text-sm text-gray-500">
-      Define your agent’s actions and integrations. (Coming soon)
+      Define custom actions your AI can perform. (Coming soon)
     </div>
   );
 }
