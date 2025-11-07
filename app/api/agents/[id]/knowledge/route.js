@@ -1,82 +1,80 @@
+// app/api/agents/[id]/knowledge/route.js
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prismadb";
+// If your NextAuth file exports authOptions, keep this import.
+// If not, change it to wherever your authOptions lives or use getServerSession() as you already do.
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// Tiny helper – mirror your other routes’ approach.
-async function requireUser() {
-  const session = await getServerSession();
-  if (!session?.user?.email) return null;
-  const user = await prisma.user.findUnique({ where: { email: session.user.email }});
-  return user;
+async function requireOwner(params, req) {
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = await getServerSession();
+  }
+  if (!session?.user?.id) {
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  const agent = await prisma.agent.findFirst({
+    where: { id: params.id, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!agent) {
+    return { error: NextResponse.json({ error: "Agent not found" }, { status: 404 }) };
+  }
+  return { session, agent };
 }
 
-// GET /api/agents/:id/knowledge  -> list entries
 export async function GET(req, { params }) {
-  try {
-    const user = await requireUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireOwner(params, req);
+  if (gate.error) return gate.error;
 
-    const agent = await prisma.agent.findFirst({
-      where: { id: params.id, userId: user.id },
-    });
-    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-
-    const entries = await prisma.knowledge.findMany({
-      where: { agentId: agent.id },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(entries);
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal" }, { status: 500 });
-  }
+  const items = await prisma.knowledge.findMany({
+    where: { agentId: gate.agent.id },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(items);
 }
 
-// POST /api/agents/:id/knowledge  -> add manual text OR a URL
 export async function POST(req, { params }) {
-  try {
-    const user = await requireUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireOwner(params, req);
+  if (gate.error) return gate.error;
 
-    const agent = await prisma.agent.findFirst({
-      where: { id: params.id, userId: user.id },
-    });
-    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-
-    const body = await req.json();
-    const { kind = "text", title = "", content = "", url = "" } = body || {};
-
-    if (kind === "url") {
-      if (!url?.startsWith("http")) {
-        return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-      }
-      const saved = await prisma.knowledge.create({
-        data: {
-          agentId: agent.id,
-          kind: "url",
-          title: title || "Link",
-          sourceUrl: url,
-        },
-      });
-      return NextResponse.json(saved);
-    }
-
-    // default: text
-    if (!content?.trim()) {
-      return NextResponse.json({ error: "Missing content" }, { status: 400 });
-    }
-    const saved = await prisma.knowledge.create({
-      data: {
-        agentId: agent.id,
-        kind: "text",
-        title: title || "Note",
-        content,
-      },
-    });
-    return NextResponse.json(saved);
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal" }, { status: 500 });
+  const body = await req.json().catch(() => null);
+  const content = body?.content?.trim();
+  const title = body?.title?.trim() || null;
+  if (!content) {
+    return NextResponse.json({ error: "content required" }, { status: 400 });
   }
+
+  const saved = await prisma.knowledge.create({
+    data: { agentId: gate.agent.id, title, content, type: "text" },
+  });
+  return NextResponse.json(saved);
+}
+
+export async function DELETE(req, { params }) {
+  const gate = await requireOwner(params, req);
+  if (gate.error) return gate.error;
+
+  const { searchParams } = new URL(req.url);
+  const itemId = searchParams.get("id");
+  if (!itemId) {
+    return NextResponse.json({ error: "id required" }, { status: 400 });
+  }
+
+  const item = await prisma.knowledge.findFirst({
+    where: { id: itemId, agentId: gate.agent.id },
+    select: { id: true },
+  });
+  if (!item) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.knowledge.delete({ where: { id: itemId } });
+  return NextResponse.json({ ok: true });
 }
