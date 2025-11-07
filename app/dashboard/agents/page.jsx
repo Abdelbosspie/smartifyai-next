@@ -265,8 +265,14 @@ export default function AgentsPage() {
                     agent={agent}
                     active={selected?.id === agent.id}
                     onSelect={() => setSelectedId(agent.id)}
-                    onEdit={() => handleEdit(agent)}
-                    onDelete={() => handleDelete(agent)}
+                    onEdit={(e) => {
+                      if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                      handleEdit(agent);
+                    }}
+                    onDelete={(e) => {
+                      if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+                      handleDelete(agent);
+                    }}
                   />
                 ))}
               </div>
