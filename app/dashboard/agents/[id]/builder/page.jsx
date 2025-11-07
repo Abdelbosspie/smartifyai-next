@@ -1,75 +1,118 @@
-"use client";
-import { useState, useEffect } from "react";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { prisma } from '@/lib/prismadb';
 
-export default function AgentBuilder({ params }) {
-  const { id } = params;
-  const [agent, setAgent] = useState(null);
-  const [prompt, setPrompt] = useState("");
-  const [testInput, setTestInput] = useState("");
-  const [response, setResponse] = useState("");
+// GET /api/agents/:id – return the agent for the logged-in user
+export async function GET(_req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  useEffect(() => {
-    fetch(`/api/agents/${id}`)
-      .then((res) => res.json())
-      .then((data) => setAgent(data));
-  }, [id]);
-
-  const handleSavePrompt = async () => {
-    await fetch(`/api/agents/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+    const agent = await prisma.agent.findFirst({
+      where: { id: params.id, userId: session.user.id },
+      select: { id: true, name: true, type: true, voice: true, instructions: true, updatedAt: true },
     });
-    alert("Prompt saved!");
-  };
 
-  const handleTestChat = async () => {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ agentId: id, message: testInput }),
+    if (!agent) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    return NextResponse.json(agent);
+  } catch (err) {
+    console.error('GET /api/agents/[id] error', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+// PATCH /api/agents/:id – update fields (specifically the prompt/instructions)
+export async function PATCH(req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Ensure the agent belongs to the current user
+    const existing = await prisma.agent.findFirst({
+      where: { id: params.id, userId: session.user.id },
+      select: { id: true },
     });
-    const data = await res.json();
-    setResponse(data.reply);
-  };
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  if (!agent) return <div className="p-6">Loading...</div>;
+    // Accept both JSON and form-encoded bodies
+    const contentType = req.headers.get('content-type') || '';
+    let body = {};
+    if (contentType.includes('application/json')) {
+      body = await req.json();
+    } else {
+      const form = await req.formData();
+      body = Object.fromEntries(form.entries());
+    }
 
-  return (
-    <div className="flex flex-row h-screen">
-      {/* LEFT: Prompt Editor */}
-      <div className="flex-1 p-6 border-r overflow-y-auto">
-        <h2 className="text-2xl font-semibold mb-4">{agent.name} – Prompt Editor</h2>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Type in the system prompt or role for your chatbot..."
-          className="w-full h-[60vh] border rounded p-3 font-mono text-sm"
-        />
-        <button
-          onClick={handleSavePrompt}
-          className="mt-4 bg-purple-600 text-white px-4 py-2 rounded"
-        >
-          Save Prompt
-        </button>
-      </div>
+    const instructions = typeof body.instructions === 'string' ? body.instructions : undefined;
 
-      {/* RIGHT: Settings + Test Chat */}
-      <div className="w-[400px] p-6 flex flex-col border-l">
-        <h3 className="text-lg font-semibold mb-2">Test Chat</h3>
-        <div className="flex-1 border rounded p-3 overflow-y-auto mb-3 bg-gray-50">
-          {response && <p className="text-gray-800">{response}</p>}
-        </div>
-        <input
-          className="border rounded p-2 mb-2"
-          placeholder="Type a message..."
-          value={testInput}
-          onChange={(e) => setTestInput(e.target.value)}
-        />
-        <button onClick={handleTestChat} className="bg-purple-600 text-white px-4 py-2 rounded">
-          Send
-        </button>
-      </div>
-    </div>
-  );
+    const updated = await prisma.agent.update({
+      where: { id: params.id },
+      data: {
+        ...(instructions !== undefined ? { instructions } : {}),
+      },
+      select: { id: true, name: true, type: true, voice: true, instructions: true },
+    });
+
+    return NextResponse.json({ success: true, agent: updated });
+  } catch (err) {
+    console.error('PATCH /api/agents/[id] error', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+// HTML forms in the builder submit as POST with a hidden _method=PATCH
+export async function POST(req, ctx) {
+  try {
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const json = await req.json().catch(() => ({}));
+      if ((json._method || '').toUpperCase() === 'PATCH') {
+        // Reconstruct a Request with JSON body to reuse PATCH
+        return PATCH(new Request(req.url, { method: 'PATCH', headers: req.headers, body: JSON.stringify(json) }), ctx);
+      }
+      return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 });
+    }
+
+    // form-encoded
+    const form = await req.formData();
+    const methodOverride = String(form.get('_method') || '').toUpperCase();
+    if (methodOverride === 'PATCH') {
+      // Forward the same request to PATCH handler
+      return PATCH(req, ctx);
+    }
+
+    return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 });
+  } catch (err) {
+    console.error('POST (method override) /api/agents/[id] error', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+// Optional: allow deletion if you later need it
+export async function DELETE(_req, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const existing = await prisma.agent.findFirst({
+      where: { id: params.id, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    await prisma.agent.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/agents/[id] error', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
 }

@@ -7,7 +7,6 @@ import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 const NAV = [
-  { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/agents", label: "Agents" },
   { href: "/dashboard/usage", label: "Usage" },
   { href: "/dashboard/billing", label: "Billing" },

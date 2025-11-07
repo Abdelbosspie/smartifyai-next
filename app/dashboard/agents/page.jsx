@@ -27,6 +27,7 @@ export default function AgentsPage() {
         const list = Array.isArray(data) ? data : data?.agents ?? [];
         setAgents(list);
         setSelectedId(list[0]?.id ?? null);
+        if (list.length === 0) setShowForm(true);
       } catch (e) {
         setError(e?.message || "Failed to load agents.");
         setAgents([]);
@@ -51,6 +52,20 @@ export default function AgentsPage() {
     () => filtered.find((a) => a.id === selectedId) ?? null,
     [filtered, selectedId]
   );
+
+  // If type is not Voice, clear any stale voice value
+  useEffect(() => {
+    if (form.type !== "Voice" && form.voice) {
+      setForm((f) => ({ ...f, voice: "" }));
+    }
+  }, [form.type]);
+
+  // Keep a valid selection when filters change
+  useEffect(() => {
+    if (!filtered.find((a) => a.id === selectedId)) {
+      setSelectedId(filtered[0]?.id ?? null);
+    }
+  }, [filtered, selectedId]);
 
   async function createAgent(e) {
     e?.preventDefault?.();
@@ -104,7 +119,16 @@ export default function AgentsPage() {
             className="w-64 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400"
           />
           <button
-            onClick={() => setShowForm((s) => !s)}
+            onClick={() => {
+              setShowForm(true);
+              setTimeout(() => {
+                const el = document.getElementById("new-agent-name");
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              }, 0);
+            }}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
           >
             + New Agent
@@ -129,10 +153,12 @@ export default function AgentsPage() {
                 Name
               </label>
               <input
+                id="new-agent-name"
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
                 placeholder="e.g., Support Bot"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createAgent(e); } }}
               />
             </div>
 
@@ -143,7 +169,13 @@ export default function AgentsPage() {
               <select
                 className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
                 value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    type: e.target.value,
+                    voice: e.target.value === "Voice" ? f.voice : "",
+                  }))
+                }
               >
                 <option>Chatbot</option>
                 <option>Voice</option>
@@ -212,7 +244,7 @@ export default function AgentsPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <h3 className="text-sm font-semibold">Live Preview</h3>
           <p className="mb-4 text-xs text-gray-500">
-            Pick an agent from the list to see its details.
+            Pick an agent and chat with it in real-time.
           </p>
 
           {!selected ? (
@@ -264,6 +296,16 @@ function ChatPanel({ agent }) {
       content: `You're chatting with ${agent?.name ?? "your agent"}.`,
     },
   ]);
+
+  useEffect(() => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: `You're chatting with ${agent?.name ?? "your agent"}.`,
+      },
+    ]);
+  }, [agent?.id]);
 
   async function send() {
     const text = input.trim();
