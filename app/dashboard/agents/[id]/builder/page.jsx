@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
 import { Switch } from "@headlessui/react";
-import KnowledgeBasePanel from "@/components/KnowledgeBasePanel";
 
 export default function AgentBuilderPage() {
   const { id } = useParams();
@@ -193,6 +192,234 @@ function ChatSettings({ agent, setAgent }) {
           />
         </Switch>
         <span className="text-sm text-gray-700">AI Speaks First</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Knowledge Base Tab (inline to avoid missing import) ---
+function KnowledgeBasePanel({ agent }) {
+  const [entries, setEntries] = React.useState([]);
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  const [title, setTitle] = React.useState("");
+  const [content, setContent] = React.useState("");
+
+  const [url, setUrl] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+
+  async function refresh() {
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge`, {
+        method: "GET",
+      });
+      if (!res.ok) throw new Error("Failed to load knowledge list");
+      const data = await res.json();
+      // support either array or {items:[...]}
+      setEntries(Array.isArray(data) ? data : data.items || []);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to load knowledge");
+    }
+  }
+
+  React.useEffect(() => {
+    if (agent?.id) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent?.id]);
+
+  async function addText(e) {
+    e.preventDefault();
+    if (!content.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title || null, content }),
+      });
+      if (!res.ok) throw new Error("Failed to add entry");
+      setTitle("");
+      setContent("");
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to add entry");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addUrl(e) {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) throw new Error("Failed to add URL");
+      setUrl("");
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to add URL");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/upload`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      // reset input so same file can be reselected
+      e.target.value = "";
+    }
+  }
+
+  async function removeEntry(id) {
+    if (!confirm("Delete this knowledge item?")) return;
+    try {
+      const res = await fetch(
+        `/api/agents/${agent.id}/knowledge?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Failed to delete");
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to delete");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-gray-600">
+        Upload PDFs, DOCX/PPTX, add URLs, or paste text to enrich your agent.
+      </p>
+
+      {error ? (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      {/* Add text block */}
+      <form onSubmit={addText} className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Title (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          />
+        </div>
+        <textarea
+          rows={3}
+          placeholder="Paste or write information here…"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {loading ? "Saving…" : "Add Entry"}
+        </button>
+      </form>
+
+      {/* URL add */}
+      <form onSubmit={addUrl} className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+        <div className="flex gap-3">
+          <input
+            type="url"
+            placeholder="https://example.com/article"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={loading || !url}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {loading ? "Adding…" : "Add URL"}
+          </button>
+        </div>
+      </form>
+
+      {/* File upload */}
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <label className="text-sm font-medium text-gray-700">Upload file</label>
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+            onChange={handleUpload}
+            className="text-sm"
+          />
+          <span className="text-xs text-gray-500">
+            {uploading ? "Uploading…" : "PDF, DOCX, PPTX, or TXT"}
+          </span>
+        </div>
+      </div>
+
+      {/* List entries */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900">Knowledge Items</h3>
+        {entries.length === 0 ? (
+          <p className="text-sm text-gray-500">No entries yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {entries.map((k) => (
+              <div
+                key={k.id}
+                className="rounded-lg border border-gray-200 bg-white p-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">
+                      {k.title || k.filename || "Untitled"}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600 whitespace-pre-wrap">
+                      {k.content ? (k.content.length > 220 ? k.content.slice(0, 220) + "…" : k.content) : (k.url || "")}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeEntry(k.id)}
+                    className="text-xs text-red-500 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
