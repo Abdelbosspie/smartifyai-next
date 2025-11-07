@@ -5,27 +5,48 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
+  const pushAssistant = (content) =>
+    setMessages((prev) => [...prev, { role: "assistant", content }]);
+
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const text = input.trim();
+    if (!text) return;
 
-    const newMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
     setInput("");
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: text }),
       });
 
+      // Handle non-OK HTTP responses with useful info
+      if (!res.ok) {
+        let payload = null;
+        try { payload = await res.json(); } catch {}
+        const errMsg =
+          payload?.error ||
+          (res.status === 429
+            ? "OpenAI quota exceeded. Add billing or enable demo fallback."
+            : `Chat failed (${res.status}).`);
+        pushAssistant(errMsg);
+        return;
+      }
+
       const data = await res.json();
-      if (data.reply) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      if (data?.reply) {
+        pushAssistant(data.reply);
+      } else if (data?.error) {
+        pushAssistant(data.error);
+      } else {
+        pushAssistant("…");
       }
     } catch (error) {
       console.error("Chat error:", error);
+      pushAssistant("Network error. Please try again.");
     }
   };
 
@@ -36,10 +57,7 @@ export default function ChatPage() {
 
         <div className="h-96 overflow-y-auto border border-gray-200 rounded-md p-4 mb-4">
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`mb-3 ${msg.role === "user" ? "text-right" : "text-left"}`}
-            >
+            <div key={i} className={`mb-3 ${msg.role === "user" ? "text-right" : "text-left"}`}>
               <span
                 className={`inline-block px-4 py-2 rounded-lg ${
                   msg.role === "user"
