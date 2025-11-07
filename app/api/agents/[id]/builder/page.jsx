@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 
 // --- Builder Page Header ---
@@ -252,7 +252,6 @@ function Functions({ agent, setAgent }) {
   );
 }
 // --- Chat Panel ---
-import { useState, useRef, useEffect } from "react";
 
 function ChatPanel({ agent }) {
   const [messages, setMessages] = useState([
