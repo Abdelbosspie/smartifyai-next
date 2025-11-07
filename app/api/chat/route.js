@@ -43,7 +43,7 @@ export async function POST(req) {
 
     const system = `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "chatbot"}.`;
     const r = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4-turbo",
       messages: [
         { role: "system", content: system },
         { role: "user", content: message },
