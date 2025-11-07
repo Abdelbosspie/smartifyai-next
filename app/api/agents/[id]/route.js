@@ -1,5 +1,3 @@
-
-// app/api/agents/[id]/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -8,73 +6,60 @@ import { prisma } from "@/lib/prismadb";
 async function getUserId(session) {
   if (session?.user?.id) return session.user.id;
   if (session?.user?.email) {
-    const user = await prisma.user.findUnique({
+    const u = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: { id: true },
     });
-    return user?.id ?? null;
+    return u?.id ?? null;
   }
   return null;
 }
 
-// GET /api/agents/:id  -> return one agent (scoped to the logged-in user)
 export async function GET(_req, { params }) {
   const session = await getServerSession(authOptions);
   const userId = await getUserId(session);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id } = params;
   const agent = await prisma.agent.findFirst({
-    where: { id: params.id, userId },
-    select: { id: true, name: true, type: true, voice: true, instructions: true, updatedAt: true },
+    where: { id, userId },
+    select: { id: true, name: true, type: true, voice: true, prompt: true, updatedAt: true },
   });
-  if (!agent) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  if (!agent) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(agent);
 }
 
-// PATCH /api/agents/:id  -> update name/type/voice/instructions
+// Allows saving name/type/voice/prompt from the builder
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   const userId = await getUserId(session);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const data = {};
-
-  if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
-  if (typeof body.type === "string") data.type = body.type;
-  if ("instructions" in body) data.instructions = body.instructions ?? null;
-
-  if ("voice" in body || "type" in body) {
-    const voiceVal = body.type === "Voice" ? (body.voice ?? null) : null;
-    data.voice = voiceVal;
-  }
-
-  // ensure ownership
-  const existing = await prisma.agent.findFirst({
-    where: { id: params.id, userId },
-    select: { id: true },
-  });
+  const { id } = params;
+  const existing = await prisma.agent.findFirst({ where: { id, userId }, select: { id: true, type: true } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const body = await req.json().catch(() => ({}));
+  const { name, type, voice, prompt } = body || {};
+  const data = {};
+
+  if (typeof name === "string") data.name = name.trim();
+  if (type === "Chatbot" || type === "Voice") data.type = type;
+  if (typeof prompt === "string") data.prompt = prompt;
+
+  // voice only sticks if type is Voice
+  if ((data.type ?? existing.type) === "Voice") {
+    if (typeof voice === "string") data.voice = voice;
+  } else {
+    data.voice = null;
+  }
+
   const updated = await prisma.agent.update({
-    where: { id: params.id },
+    where: { id },
     data,
-    select: { id: true, name: true, type: true, voice: true, instructions: true, updatedAt: true },
+    select: { id: true, name: true, type: true, voice: true, prompt: true, updatedAt: true },
   });
 
   return NextResponse.json(updated);
-}
-
-// (optional) DELETE /api/agents/:id
-export async function DELETE(_req, { params }) {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session);
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const deleted = await prisma.agent.deleteMany({
-    where: { id: params.id, userId },
-  });
-  if (!deleted.count) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ ok: true });
 }
