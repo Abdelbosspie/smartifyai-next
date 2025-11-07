@@ -1,182 +1,362 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 
-/**
- * KnowledgeBasePanel
- * - Loads existing knowledge entries for an agent
- * - Add text snippets
- * - Add URLs (scraped/extracted server-side)
- * - Upload files (PDF/DOCX/PPTX/TXT)
- * - Delete entries
- *
- * Expects backend routes:
- *  GET    /api/agents/:id/knowledge
- *  POST   /api/agents/:id/knowledge               (JSON { title?, content })
- *  POST   /api/agents/:id/knowledge/url           (JSON { url, title? })
- *  POST   /api/agents/:id/knowledge/upload        (multipart FormData { file })
- *  DELETE /api/agents/:id/knowledge?id=<entryId>
- */
-export default function KnowledgeBasePanel({ agent }) {
-  const agentId = agent?.id;
+import { Switch } from "@headlessui/react";
 
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+export default function AgentBuilderPage() {
+  const { id } = useParams();
+  const [agent, setAgent] = useState(null);
+  const [activeTab, setActiveTab] = useState("chat");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // text/url form state
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [url, setUrl] = useState("");
-
-  // Load entries
+  // Fetch agent info
   useEffect(() => {
-    if (!agentId) return;
     (async () => {
       try {
-        setError("");
-        const res = await fetch(`/api/agents/${agentId}/knowledge`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/agents/${id}`);
+        if (!res.ok) throw new Error("Failed to load agent");
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load knowledge");
-        setEntries(Array.isArray(data) ? data : []);
+        setAgent(data);
       } catch (err) {
-        setError(err.message || "Failed to load knowledge");
+        console.error(err);
+        setError("Failed to load agent.");
       }
     })();
-  }, [agentId]);
+  }, [id]);
 
-  // Add plain text snippet
+  if (!agent) {
+    return (
+      <div className="p-8 text-gray-500 text-sm">
+        {error ? error : "Loading agent..."}
+      </div>
+    );
+  }
+
+  // Tab Components
+  const tabs = [
+    { id: "chat", label: "Chat Settings" },
+    { id: "knowledge", label: "Knowledge Base" },
+    { id: "functions", label: "Functions" },
+    { id: "appearance", label: "Appearance" },
+  ];
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/agents/${id}/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(agent),
+      });
+      if (!res.ok) throw new Error("Failed to save agent");
+      alert("Agent saved successfully!");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Top bar */}
+      <div className="flex justify-between items-center border-b bg-white px-6 py-3 shadow-sm">
+        <h1 className="text-lg font-semibold">
+          {agent.name || "Untitled Agent"}
+        </h1>
+        <div className="flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium hover:bg-gray-200"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button
+            onClick={() => alert("Upgrade required to publish")}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Publish
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-64 border-r bg-white">
+          <nav className="flex flex-col">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 text-left text-sm font-medium ${
+                  activeTab === tab.id
+                    ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600"
+                    : "hover:bg-gray-50 text-gray-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {activeTab === "chat" && <ChatSettings agent={agent} setAgent={setAgent} />}
+          {activeTab === "knowledge" && <KnowledgeBasePanel agent={agent} />}
+          {activeTab === "functions" && <Functions />}
+          {activeTab === "appearance" && <Appearance />}
+        </main>
+
+        {/* Live Preview */}
+        <aside className="w-96 border-l bg-white p-4">
+          <h3 className="text-sm font-semibold mb-2">Live Preview</h3>
+          <div className="border rounded-lg p-3 text-sm text-gray-500 h-[500px] overflow-y-auto">
+            Test chat with {agent.name} will appear here.
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// --- Chat Settings Tab ---
+function ChatSettings({ agent, setAgent }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Model</label>
+        <select
+          value={agent.model || "gpt-4-turbo"}
+          onChange={(e) => setAgent({ ...agent, model: e.target.value })}
+          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-indigo-400"
+        >
+          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+          <option value="gpt-4o-mini">GPT-4o Mini</option>
+          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Language</label>
+        <input
+          value={agent.language || "English"}
+          onChange={(e) => setAgent({ ...agent, language: e.target.value })}
+          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Universal Prompt
+        </label>
+        <textarea
+          rows="3"
+          value={agent.prompt || ""}
+          onChange={(e) => setAgent({ ...agent, prompt: e.target.value })}
+          placeholder="e.g. You are a friendly AI assistant helping with customer queries."
+          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Welcome Message
+        </label>
+        <input
+          value={agent.welcome || ""}
+          onChange={(e) => setAgent({ ...agent, welcome: e.target.value })}
+          placeholder="Hi there! How can I help you?"
+          className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Switch
+          checked={agent.aiSpeaksFirst || false}
+          onChange={(v) => setAgent({ ...agent, aiSpeaksFirst: v })}
+          className={`${
+            agent.aiSpeaksFirst ? "bg-indigo-600" : "bg-gray-200"
+          } relative inline-flex h-6 w-11 items-center rounded-full`}
+        >
+          <span
+            className={`${
+              agent.aiSpeaksFirst ? "translate-x-6" : "translate-x-1"
+            } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+          />
+        </Switch>
+        <span className="text-sm text-gray-700">AI Speaks First</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Knowledge Base Tab (inline to avoid missing import) ---
+function KnowledgeBasePanel({ agent }) {
+  const [entries, setEntries] = React.useState([]);
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  const [title, setTitle] = React.useState("");
+  const [content, setContent] = React.useState("");
+
+  const [url, setUrl] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+
+  async function refresh() {
+    try {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge`, {
+        method: "GET",
+      });
+      if (!res.ok) throw new Error("Failed to load knowledge list");
+      const data = await res.json();
+      // support either array or {items:[...]}
+      setEntries(Array.isArray(data) ? data : data.items || []);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to load knowledge");
+    }
+  }
+
+  React.useEffect(() => {
+    if (agent?.id) {
+      refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent?.id]);
+
   async function addText(e) {
     e.preventDefault();
     if (!content.trim()) return;
     setLoading(true);
-    setError("");
     try {
-      const res = await fetch(`/api/agents/${agentId}/knowledge`, {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title || undefined, content }),
+        body: JSON.stringify({ title: title || null, content }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Add entry failed");
-      setEntries((p) => [data, ...p]);
+      if (!res.ok) throw new Error("Failed to add entry");
       setTitle("");
       setContent("");
+      await refresh();
     } catch (err) {
-      setError(err.message || "Add entry failed");
+      console.error(err);
+      setError(err.message || "Failed to add entry");
     } finally {
       setLoading(false);
     }
   }
 
-  // Add URL for server-side fetch + extract
   async function addUrl(e) {
     e.preventDefault();
     if (!url.trim()) return;
     setLoading(true);
-    setError("");
     try {
-      const res = await fetch(`/api/agents/${agentId}/knowledge/url`, {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, title: title || undefined }),
+        body: JSON.stringify({ url }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Add URL failed");
-      setEntries((p) => [data, ...p]);
+      if (!res.ok) throw new Error("Failed to add URL");
       setUrl("");
-      setTitle("");
+      await refresh();
     } catch (err) {
-      setError(err.message || "Add URL failed");
+      console.error(err);
+      setError(err.message || "Failed to add URL");
     } finally {
       setLoading(false);
     }
   }
 
-  // Upload a file (PDF/DOCX/PPTX/TXT)
   async function handleUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setError("");
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch(`/api/agents/${agentId}/knowledge/upload`, {
+      const res = await fetch(`/api/agents/${agent.id}/knowledge/upload`, {
         method: "POST",
         body: fd,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Upload failed");
-      setEntries((p) => [data, ...p]);
+      if (!res.ok) throw new Error("Upload failed");
+      await refresh();
     } catch (err) {
+      console.error(err);
       setError(err.message || "Upload failed");
     } finally {
       setUploading(false);
-      // reset file input so selecting the same file again fires onChange
+      // reset input so same file can be reselected
       e.target.value = "";
     }
   }
 
-  // Delete an entry
   async function removeEntry(id) {
-    if (!id) return;
     if (!confirm("Delete this knowledge item?")) return;
     try {
-      const res = await fetch(`/api/agents/${agentId}/knowledge?id=${encodeURIComponent(id)}` , {
-        method: "DELETE",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Delete failed");
-      setEntries((p) => p.filter((x) => x.id !== id));
+      const res = await fetch(
+        `/api/agents/${agent.id}/knowledge?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Failed to delete");
+      await refresh();
     } catch (err) {
-      setError(err.message || "Delete failed");
+      console.error(err);
+      setError(err.message || "Failed to delete");
     }
   }
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      <p className="text-sm text-gray-600">
+        Upload PDFs, DOCX/PPTX, add URLs, or paste text to enrich your agent.
+      </p>
+
+      {error ? (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {/* Text add */}
-      <form onSubmit={addText} className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
-        <input
-          type="text"
-          placeholder="Title (optional)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-        />
+      {/* Add text block */}
+      <form onSubmit={addText} className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Title (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          />
+        </div>
         <textarea
           rows={3}
-          placeholder="Paste or write information here..."
+          placeholder="Paste or write information here…"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
         />
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {loading ? "Adding..." : "Add Entry"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+        >
+          {loading ? "Saving…" : "Add Entry"}
+        </button>
       </form>
 
       {/* URL add */}
       <form onSubmit={addUrl} className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
-            type="text"
+            type="url"
             placeholder="https://example.com/article"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -184,71 +364,80 @@ export default function KnowledgeBasePanel({ agent }) {
           />
           <button
             type="submit"
-            disabled={loading || !url.trim()}
+            disabled={loading || !url}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
           >
-            {loading ? "Adding..." : "Add URL"}
+            {loading ? "Adding…" : "Add URL"}
           </button>
         </div>
-        <p className="text-xs text-gray-500">We will fetch the page and extract text server‑side.</p>
       </form>
 
       {/* File upload */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
         <label className="text-sm font-medium text-gray-700">Upload file</label>
-        <div className="flex items-center gap-3">
+        <div className="mt-2 flex items-center gap-3">
           <input
             type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
             onChange={handleUpload}
+            className="text-sm"
           />
-          <span className="text-xs text-gray-500">PDF, DOCX/PPTX, or TXT</span>
+          <span className="text-xs text-gray-500">
+            {uploading ? "Uploading…" : "PDF, DOCX, PPTX, or TXT"}
+          </span>
         </div>
-        {uploading && (
-          <div className="text-xs text-gray-500">Uploading…</div>
-        )}
       </div>
 
-      {/* Entries list */}
+      {/* List entries */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-900">Knowledge Items</h3>
         {entries.length === 0 ? (
           <p className="text-sm text-gray-500">No entries yet.</p>
         ) : (
-          <ul className="space-y-2">
-            {entries.map((e) => (
-              <li key={e.id} className="flex justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs rounded bg-gray-100 px-2 py-0.5 text-gray-700">
-                      {e.type || e.sourceType || "text"}
-                    </span>
-                    <span className="font-medium text-gray-800 truncate">{e.title || e.filename || "Untitled"}</span>
+          <div className="space-y-3">
+            {entries.map((k) => (
+              <div
+                key={k.id}
+                className="rounded-lg border border-gray-200 bg-white p-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">
+                      {k.title || k.filename || "Untitled"}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600 whitespace-pre-wrap">
+                      {k.content ? (k.content.length > 220 ? k.content.slice(0, 220) + "…" : k.content) : (k.url || "")}
+                    </div>
                   </div>
-                  {e.url && (
-                    <a href={e.url} target="_blank" rel="noreferrer" className="block text-xs text-indigo-600 hover:underline truncate">
-                      {e.url}
-                    </a>
-                  )}
-                  {e.content && (
-                    <p className="mt-1 text-xs text-gray-600 whitespace-pre-wrap line-clamp-3">
-                      {e.content.slice(0, 500)}{e.content.length > 500 ? "…" : ""}
-                    </p>
-                  )}
-                </div>
-                <div className="shrink-0">
                   <button
-                    onClick={() => removeEntry(e.id)}
-                    className="text-xs text-red-600 hover:underline"
+                    onClick={() => removeEntry(k.id)}
+                    className="text-xs text-red-500 hover:underline"
                   >
                     Delete
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// --- Functions Tab (temporary placeholder) ---
+function Functions() {
+  return (
+    <div className="text-sm text-gray-500">
+      Define custom actions your AI can perform. (Coming soon)
+    </div>
+  );
+}
+
+function Appearance() {
+  return (
+    <div className="text-sm text-gray-500">
+      Customize your agent’s look and tone. (Coming soon)
     </div>
   );
 }
