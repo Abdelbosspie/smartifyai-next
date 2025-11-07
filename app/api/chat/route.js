@@ -25,33 +25,71 @@ export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
     const userId = await getUserId(session);
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { agentId, message } = await req.json();
     if (!agentId || !message)
-      return NextResponse.json({ error: "agentId and message are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "agentId and message are required" },
+        { status: 400 }
+      );
 
-    // Owns the agent?
+    // Fetch agent with prompt, model, and knowledge
     const agent = await prisma.agent.findFirst({
       where: { id: agentId, userId },
-      select: { name: true, type: true, voice: true }, // no 'prompt'
+      include: {
+        knowledge: { select: { content: true } },
+      },
     });
-    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    if (!agent)
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
 
-    // No key? Just echo to avoid 500s.
-    if (!openai) return NextResponse.json({ reply: `${agent.name}: ${message}` });
+    if (!openai)
+      return NextResponse.json({
+        reply: `${agent.name}: ${message}`,
+      });
 
-    const system = `You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "chatbot"} running on model gpt-4-turbo. When asked about your model, answer that you are gpt-4-turbo.`;
-    const r = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+    // Construct dynamic system prompt
+    const knowledgeText = agent.knowledge?.map((k) => k.content).join("\n") ?? "";
+    const systemPrompt = `
+You are ${agent.name}, a helpful ${agent.type?.toLowerCase() || "assistant"}.
+${agent.prompt ? `\nCustom instructions:\n${agent.prompt}` : ""}
+${knowledgeText ? `\nKnowledge base:\n${knowledgeText}` : ""}
+When asked about your model, respond: "${agent.model || "gpt-4-turbo"}".
+Always reply in ${agent.language || "English"}.
+    `;
+
+    const completion = await openai.chat.completions.create({
+      model: agent.model || "gpt-4-turbo",
       messages: [
-        { role: "system", content: system },
+        { role: "system", content: systemPrompt },
         { role: "user", content: message },
       ],
       temperature: 0.7,
     });
 
-    const reply = r.choices?.[0]?.message?.content?.trim() || "…";
+    const reply =
+      completion.choices?.[0]?.message?.content?.trim() || "…";
+
+    // Save message (optional)
+    await prisma.message.create({
+      data: {
+        agentId,
+        userId,
+        role: "user",
+        content: message,
+      },
+    });
+    await prisma.message.create({
+      data: {
+        agentId,
+        userId,
+        role: "assistant",
+        content: reply,
+      },
+    });
+
     return NextResponse.json({ reply });
   } catch (err) {
     console.error("/api/chat error:", err);

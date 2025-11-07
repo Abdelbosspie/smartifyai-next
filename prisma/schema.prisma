@@ -92,19 +92,23 @@ model Subscription {
  * =========================
  */
 model Agent {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  name  String
-  type  String
-  voice String?
-  phone String?
-
-  messages Message[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String      @id @default(cuid())
+  userId        String
+  name          String
+  type          String
+  voice         String?
+  prompt        String?
+  model         String?     @default("gpt-4-turbo")
+  language      String?     @default("English")
+  welcome       String?     @default("Hi there! How can I help you?")
+  aiSpeaksFirst Boolean?    @default(false)
+  dynamicMsgs   Boolean?    @default(false)
+  published     Boolean?    @default(false)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      Message[]
+  knowledge     Knowledge[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Message {
@@ -116,4 +120,14 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([agentId, createdAt])
+}
+
+model Knowledge {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title     String?
+  content   String? // extracted text
+  fileUrl   String?
+  createdAt DateTime @default(now())
 }
