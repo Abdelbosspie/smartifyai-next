@@ -1,79 +1,69 @@
+// app/api/agents/[id]/knowledge/upload/route.js
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prismadb";
-import { getServerSession } from "next-auth";
-import pdfParse from "pdf-parse";
-import mammoth from "mammoth";
-import { parsePptx } from "pptx-parser"; // very lightweight text grabber
+import prisma from "@/lib/prismadb";
 
-async function requireUser() {
-  const session = await getServerSession();
-  if (!session?.user?.email) return null;
-  const user = await prisma.user.findUnique({ where: { email: session.user.email }});
-  return user;
+export const runtime = "nodejs"; // ensure Node, not Edge
+
+// lazy load pdf-parse to avoid build-time bundling issues
+let _pdfParse = null;
+async function getPdfParse() {
+  if (_pdfParse) return _pdfParse;
+  const mod = await import("pdf-parse");
+  _pdfParse = mod.default ?? mod; // handle both ESM/CJS
+  return _pdfParse;
 }
-
-export const runtime = "nodejs"; // need Node APIs for file parsing
 
 export async function POST(req, { params }) {
   try {
-    const user = await requireUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const agent = await prisma.agent.findFirst({
-      where: { id: params.id, userId: user.id },
-    });
-    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-
-    const form = await req.formData();
-    const file = form.get("file");
-    if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "No file" }, { status: 400 });
+    const { id: agentId } = params || {};
+    const formData = await req.formData();
+    const file = formData.get("file");
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const arrayBuf = await file.arrayBuffer();
-    const buf = Buffer.from(arrayBuf);
-    const mime = file.type || "";
     const name = file.name || "upload";
-    let extracted = "";
+    const mimeType = file.type || "application/octet-stream";
+    const buf = Buffer.from(await file.arrayBuffer());
 
-    if (mime === "application/pdf" || name.toLowerCase().endsWith(".pdf")) {
-      const res = await pdfParse(buf);
-      extracted = res.text || "";
-    } else if (
-      mime.includes("wordprocessingml.document") ||
-      name.toLowerCase().endsWith(".docx")
-    ) {
-      const res = await mammoth.extractRawText({ buffer: buf });
-      extracted = res.value || "";
-    } else if (
-      mime.includes("presentationml.presentation") ||
-      name.toLowerCase().endsWith(".pptx")
-    ) {
-      const slides = await parsePptx(buf);
-      extracted = slides.map(s => (s.text || "")).join("\n---\n");
-    } else {
-      return NextResponse.json(
-        { error: "Only PDF, DOCX, and PPTX are supported right now." },
-        { status: 415 }
-      );
+    let content = "";
+    let kind = "file";
+
+    // PDF -> extract text
+    const isPdf = mimeType === "application/pdf" || name.toLowerCase().endsWith(".pdf");
+    if (isPdf) {
+      const pdfParse = await getPdfParse();
+      const result = await pdfParse(buf);
+      content = (result.text || "").slice(0, 20000); // cap to keep tokens sane
+      kind = "pdf";
+    }
+    // Plain text fallback
+    else if (mimeType.startsWith("text/")) {
+      content = buf.toString("utf8").slice(0, 20000);
+      kind = "text";
+    }
+    // DOCX/PPTX and others: store metadata now; parser can be added later
+    else {
+      // You can later add a safe server-side parser without browser globals.
+      kind = "file";
+      content = ""; // keep empty so chat won’t try to use it yet
     }
 
-    // Keep an entry per upload with extracted text
     const saved = await prisma.knowledge.create({
       data: {
-        agentId: agent.id,
-        kind: "file",
+        agentId,
+        kind,
         title: name,
-        content: (extracted || "").slice(0, 200_000), // guard against massive files
-        fileName: name,
-        mimeType: mime,
+        mimeType,
         size: buf.length,
+        content: content || null,
+        sourceUrl: null,
       },
     });
 
-    return NextResponse.json({ id: saved.id, title: saved.title });
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Internal" }, { status: 500 });
+    return NextResponse.json(saved);
+  } catch (err) {
+    console.error("upload error:", err);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
