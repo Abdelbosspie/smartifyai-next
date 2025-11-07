@@ -98,7 +98,7 @@ model Agent {
   type          String
   voice         String?
   prompt        String?
-  model         String?     @default("gpt-4-turbo")
+  model         String      @default("gpt-3.5-turbo") 
   language      String?     @default("English")
   welcome       String?     @default("Hi there! How can I help you?")
   aiSpeaksFirst Boolean?    @default(false)
