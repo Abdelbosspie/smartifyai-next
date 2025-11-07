@@ -1,4 +1,3 @@
-// app/api/agents/route.js
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismadb";
 import { getServerSession } from "next-auth";
@@ -17,7 +16,6 @@ export async function GET() {
       where: { email: session.user.email },
       select: { id: true },
     });
-
     if (!user) return NextResponse.json([]);
 
     const agents = await prisma.agent.findMany({
@@ -28,10 +26,7 @@ export async function GET() {
     return NextResponse.json(agents);
   } catch (err) {
     console.error("GET /api/agents failed:", err);
-    return NextResponse.json(
-      { error: "Internal", details: err?.message ?? "unknown" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal" }, { status: 500 });
   }
 }
 
@@ -59,7 +54,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    // Ensure the user row exists
+    // ensure a user row exists to satisfy Agent.userId FK
     const user = await prisma.user.upsert({
       where: { email: session.user.email },
       update: {},
@@ -88,9 +83,6 @@ export async function POST(req) {
     return NextResponse.json(agent, { status: 201 });
   } catch (err) {
     console.error("POST /api/agents failed:", err);
-    return NextResponse.json(
-      { error: "Internal", details: err?.message ?? "unknown" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal", details: err?.message }, { status: 500 });
   }
 }
