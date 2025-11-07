@@ -39,6 +39,21 @@ export const authOptions = {
     signIn: "/login",
   },
   session: { strategy: "jwt" },
+  callbacks: {
+    async jwt({ token, user }) {
+      // On sign in, persist the user's id on the token
+      if (user?.id) token.uid = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      // Expose the id on the session so server routes can read session.user.id
+      if (session?.user && token?.uid) {
+        session.user.id = token.uid;
+      }
+      return session;
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 import NextAuth from "next-auth";
