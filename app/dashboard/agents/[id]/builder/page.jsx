@@ -13,20 +13,18 @@ export default function AgentBuilderPage() {
   const [savedAt, setSavedAt] = useState(null);
   const [err, setErr] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
-    (async () => {
-      setErr("");
-      const res = await fetch(`/api/agents/${id}`, { cache: "no-store" });
-      if (!res.ok) {
-        setErr("Failed to load agent.");
-        return;
-      }
-      const data = await res.json();
-      setAgent(data);
-      setInstructions(data?.instructions || "");
-    })();
-  }, [id]);
+useEffect(() => {
+  let alive = true;
+  (async () => {
+    setError(""); setLoading(true);
+    const res = await fetch(`/api/agents/${params.id}`, { cache: "no-store" });
+    if (!alive) return;
+    if (!res.ok) throw new Error(`Failed to load agent (${res.status})`);
+    const agent = await res.json();
+    setAgent(agent);
+  })().catch(e => setError(e.message)).finally(() => setLoading(false));
+  return () => { alive = false; };
+}, [params.id]);
 
   async function save() {
     if (!id) return;
