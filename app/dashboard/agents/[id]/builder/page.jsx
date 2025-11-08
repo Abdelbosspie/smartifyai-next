@@ -13,7 +13,21 @@ const DEFAULT_LANGUAGES = [
   "Ukrainian","Bulgarian","Slovak","Slovenian","Croatian","Serbian","Lithuanian",
   "Latvian","Estonian","Tamil","Telugu","Marathi","Gujarati"
 ];
-const LANGS = Array.isArray(LANGUAGES) && LANGUAGES.length ? LANGUAGES : DEFAULT_LANGUAGES;
+const LANGS =
+  Array.isArray(LANGUAGES) && LANGUAGES.length ? LANGUAGES : DEFAULT_LANGUAGES;
+
+// Normalize to [{label, value}] so we can accept either strings or {label,value} objects
+const LANG_OPTIONS = (Array.isArray(LANGS) ? LANGS : [])
+  .map((l) => {
+    if (typeof l === "string") return { label: l, value: l };
+    if (l && typeof l === "object") {
+      const label = l.label ?? l.value;
+      const value = l.value ?? l.label;
+      if (label && value) return { label, value };
+    }
+    return null;
+  })
+  .filter(Boolean);
 
 async function parseJson(res) {
   // Make all fetch JSON parsing safe – if the API returns HTML/text, avoid crashing the page
@@ -254,9 +268,9 @@ export default function BuilderPage() {
               onChange={(e) => setLanguage(e.target.value)}
               disabled={!agentId}
             >
-              {LANGS.map((l) => (
-                <option key={l} value={l}>
-                  {l}
+              {LANG_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
