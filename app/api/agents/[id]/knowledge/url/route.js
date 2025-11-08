@@ -1,42 +1,53 @@
-// app/api/agents/[id]/knowledge/url/route.js
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prismadb";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prismadb";
 
-async function requireOwner(params) {
-  let session = await getServerSession(authOptions).catch(() => null);
-  if (!session?.user?.id) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const agent = await prisma.agent.findFirst({
-    where: { id: params.id, userId: session.user.id },
-    select: { id: true },
-  });
-  if (!agent) return { error: NextResponse.json({ error: "Agent not found" }, { status: 404 }) };
-  return { agent };
-}
-
+// POST /api/agents/[id]/knowledge/url
+// Body: { url: string, title?: string }
 export async function POST(req, { params }) {
-  const gate = await requireOwner(params);
-  if (gate.error) return gate.error;
-
-  const body = await req.json().catch(() => null);
-  let url = (body?.url || "").trim();
-  const title = body?.title?.trim() || null;
-  if (!url) return NextResponse.json({ error: "url required" }, { status: 400 });
-  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
-
-  let snippet = "";
   try {
-    const resp = await fetch(url, { method: "GET" });
-    const html = await resp.text();
-    snippet = html.slice(0, 12000);
-  } catch (_) {}
+    const agentId = params?.id;
+    const body = await req.json();
+    const url = (body?.url || "").toString().trim();
+    const title = (body?.title || "").toString().trim() || null;
 
-  const saved = await prisma.knowledge.create({
-    data: { agentId: gate.agent.id, title: title || url, url, content: snippet, type: "url" },
-  });
-  return NextResponse.json(saved);
+    if (!agentId || !url) {
+      return NextResponse.json({ error: "Missing agent id or url" }, { status: 400 });
+    }
+
+    const agent = await prisma.agent.findUnique({
+      where: { id: agentId },
+      select: { id: true },
+    });
+    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+
+    // Fetch HTML and distill to plain text (no extra deps)
+    const res = await fetch(url, { redirect: "follow" });
+    if (!res.ok) {
+      return NextResponse.json({ error: `Failed to fetch URL (${res.status})` }, { status: 400 });
+    }
+    const html = await res.text();
+    const text = html
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const created = await prisma.knowledge.create({
+      data: {
+        agentId,
+        type: "url",
+        title,
+        url,
+        content: text.slice(0, 20000), // cap size
+      },
+    });
+    return NextResponse.json(created, { status: 201 });
+  } catch (err) {
+    console.error("[KB:url] POST error:", err);
+    return NextResponse.json({ error: "Add URL failed" }, { status: 500 });
+  }
 }

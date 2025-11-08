@@ -1,81 +1,81 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prismadb";
+import prisma from "@/lib/prismadb";
 
-export async function GET(req, { params }) {
+// GET /api/agents/[id]/knowledge
+export async function GET(_req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const agentId = params?.id;
+    if (!agentId) return NextResponse.json({ error: "Missing agent id" }, { status: 400 });
 
-    const { id } = params;
-
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+    // Ensure the agent id is valid (no user/ownership check here)
+    const agent = await prisma.agent.findUnique({
+      where: { id: agentId },
       select: { id: true },
     });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
 
-    // Find agent owned by this user
-    const agent = await prisma.agent.findFirst({
-      where: { id, userId: user.id },
+    const items = await prisma.knowledge.findMany({
+      where: { agentId },
+      orderBy: { createdAt: "desc" },
     });
-
-    if (!agent) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(agent);
+    return NextResponse.json(items);
   } catch (err) {
-    console.error("GET /api/agents/[id] error:", err);
-    return NextResponse.json({ error: "Failed to load agent" }, { status: 500 });
+    console.error("[KB] GET error:", err);
+    return NextResponse.json({ error: "Failed to load knowledge" }, { status: 500 });
   }
 }
 
+// POST /api/agents/[id]/knowledge
+// Body: { title?: string, content: string }
+export async function POST(req, { params }) {
+  try {
+    const agentId = params?.id;
+    if (!agentId) return NextResponse.json({ error: "Missing agent id" }, { status: 400 });
+
+    const agent = await prisma.agent.findUnique({
+      where: { id: agentId },
+      select: { id: true },
+    });
+    if (!agent) return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+
+    const body = await req.json();
+    const content = (body?.content || "").toString().trim();
+    const title = (body?.title || "").toString().trim() || null;
+
+    if (!content) return NextResponse.json({ error: "Content is required" }, { status: 400 });
+
+    const created = await prisma.knowledge.create({
+      data: { agentId, type: "text", title, content },
+    });
+    return NextResponse.json(created, { status: 201 });
+  } catch (err) {
+    console.error("[KB] POST error:", err);
+    return NextResponse.json({ error: "Add entry failed" }, { status: 500 });
+  }
+}
+
+// DELETE /api/agents/[id]/knowledge?id=KNOWLEDGE_ID
 export async function DELETE(req, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const agentId = params?.id;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!agentId || !id) {
+      return NextResponse.json({ error: "Missing agent id or knowledge id" }, { status: 400 });
     }
 
-    const { id } = params || {};
-    if (!id) {
-      return NextResponse.json({ error: "Missing agent id" }, { status: 400 });
-    }
-
-    // Resolve the current user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
+    const existing = await prisma.knowledge.findUnique({
+      where: { id },
+      select: { id: true, agentId: true },
     });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!existing || existing.agentId !== agentId) {
+      return NextResponse.json({ error: "Knowledge item not found" }, { status: 404 });
     }
 
-    // Ensure the agent belongs to this user
-    const agent = await prisma.agent.findFirst({
-      where: { id, userId: user.id },
-      select: { id: true },
-    });
-    if (!agent) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
-    }
-
-    // Best-effort cleanup of related data (for setups without ON DELETE CASCADE)
-    await prisma.message.deleteMany({ where: { agentId: id } }).catch(() => {});
-    await prisma.knowledge.deleteMany({ where: { agentId: id } }).catch(() => {});
-
-    await prisma.agent.delete({ where: { id } });
-
+    await prisma.knowledge.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("DELETE /api/agents/[id] error:", err);
-    return NextResponse.json({ error: "Failed to delete agent" }, { status: 500 });
+    console.error("[KB] DELETE error:", err);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }
