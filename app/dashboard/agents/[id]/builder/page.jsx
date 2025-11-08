@@ -4,6 +4,46 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { LANGUAGES } from "@/lib/languages";
 
+// --- Safety: fallback language list & helpers ---
+const DEFAULT_LANGUAGES = [
+  "English","Arabic","Spanish","French","German","Italian","Portuguese","Russian",
+  "Chinese (Simplified)","Japanese","Korean","Hindi","Urdu","Bengali","Turkish","Dutch",
+  "Polish","Swedish","Norwegian","Danish","Finnish","Greek","Thai","Vietnamese",
+  "Indonesian","Malay","Filipino","Persian","Hebrew","Czech","Romanian","Hungarian",
+  "Ukrainian","Bulgarian","Slovak","Slovenian","Croatian","Serbian","Lithuanian",
+  "Latvian","Estonian","Tamil","Telugu","Marathi","Gujarati"
+];
+const LANGS = Array.isArray(LANGUAGES) && LANGUAGES.length ? LANGUAGES : DEFAULT_LANGUAGES;
+
+async function parseJson(res) {
+  // Make all fetch JSON parsing safe – if the API returns HTML/text, avoid crashing the page
+  try { return await res.json(); } catch { return null; }
+}
+
+class BuilderErrorBoundary extends React.Component {
+  constructor(props){
+    super(props);
+    this.state = { hasError: false, err: null };
+  }
+  static getDerivedStateFromError(error){
+    return { hasError: true, err: error };
+  }
+  componentDidCatch(error, info){
+    // Log to console for debugging on client
+    console.error("Builder page error:", error, info);
+  }
+  render(){
+    if(this.state.hasError){
+      return (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          Something went wrong while loading this page. Please refresh. {this.state.err?.message}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /**
  * Agent Builder – Knowledge Base + Language
  * Self-contained client page that:
@@ -44,7 +84,7 @@ export default function BuilderPage() {
       try {
         setError("");
         const res = await fetch(`/api/agents/${agentId}`, { cache: "no-store" });
-        const data = await res.json();
+        const data = await parseJson(res);
         if (!res.ok) throw new Error(data?.error || "Failed to load agent");
         if (!cancelled) {
           setAgent(data);
@@ -70,7 +110,7 @@ export default function BuilderPage() {
         const res = await fetch(`/api/agents/${agentId}/knowledge`, {
           cache: "no-store",
         });
-        const data = await res.json();
+        const data = await parseJson(res);
         if (!res.ok) throw new Error(data?.error || "Failed to load knowledge");
         if (!cancelled) setEntries(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -93,7 +133,7 @@ export default function BuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ language }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await parseJson(res) || {};
       if (!res.ok) throw new Error(data?.error || "Failed to save language");
       setLangMsg("Saved.");
     } catch (err) {
@@ -116,7 +156,7 @@ export default function BuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title || undefined, content }),
       });
-      const data = await res.json();
+      const data = await parseJson(res);
       if (!res.ok) throw new Error(data?.error || "Add entry failed");
       setEntries((p) => [data, ...p]);
       setTitle("");
@@ -140,7 +180,7 @@ export default function BuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, title: title || undefined }),
       });
-      const data = await res.json();
+      const data = await parseJson(res);
       if (!res.ok) throw new Error(data?.error || "Add URL failed");
       setEntries((p) => [data, ...p]);
       setUrl("");
@@ -165,7 +205,7 @@ export default function BuilderPage() {
         method: "POST",
         body: fd,
       });
-      const data = await res.json();
+      const data = await parseJson(res);
       if (!res.ok) throw new Error(data?.error || "Upload failed");
       setEntries((p) => [data, ...p]);
     } catch (err) {
@@ -186,7 +226,7 @@ export default function BuilderPage() {
         `/api/agents/${agentId}/knowledge?id=${encodeURIComponent(id)}`,
         { method: "DELETE" }
       );
-      const data = await res.json().catch(() => ({}));
+      const data = await parseJson(res) || {};
       if (!res.ok) throw new Error(data?.error || "Delete failed");
       setEntries((p) => p.filter((x) => x.id !== id));
     } catch (err) {
@@ -195,175 +235,177 @@ export default function BuilderPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800">
-          {agent?.name || "Agent"} – Builder
-        </h1>
-      </div>
-
-      {/* Language selector */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
-        <label className="text-sm font-medium text-gray-700">Language</label>
-        <div className="flex gap-2">
-          <select
-            className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            disabled={!agentId}
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={saveLanguage}
-            disabled={savingLang || !agentId}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {savingLang ? "Saving..." : "Save"}
-          </button>
+    <BuilderErrorBoundary>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-gray-800">
+            {agent?.name || "Agent"} – Builder
+          </h1>
         </div>
-        {langMsg && <div className="text-xs text-gray-500">{langMsg}</div>}
-        <p className="text-xs text-gray-500">
-          Forces the model to reply in the selected language.
-        </p>
-      </div>
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
+        {/* Language selector */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
+          <label className="text-sm font-medium text-gray-700">Language</label>
+          <div className="flex gap-2">
+            <select
+              className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              disabled={!agentId}
+            >
+              {LANGS.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={saveLanguage}
+              disabled={savingLang || !agentId}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {savingLang ? "Saving..." : "Save"}
+            </button>
+          </div>
+          {langMsg && <div className="text-xs text-gray-500">{langMsg}</div>}
+          <p className="text-xs text-gray-500">
+            Forces the model to reply in the selected language.
+          </p>
         </div>
-      )}
 
-      {/* Text add */}
-      <form
-        onSubmit={addText}
-        className="rounded-lg border border-gray-200 bg-white p-4 space-y-2"
-      >
-        <input
-          type="text"
-          placeholder="Title (optional)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-          disabled={!agentId}
-        />
-        <textarea
-          rows={3}
-          placeholder="Paste or write information here..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-          disabled={!agentId}
-        />
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={loading || !agentId}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {loading ? "Adding..." : "Add Entry"}
-          </button>
-        </div>
-      </form>
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-      {/* URL add */}
-      <form
-        onSubmit={addUrl}
-        className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
-      >
-        <div className="flex gap-2">
+        {/* Text add */}
+        <form
+          onSubmit={addText}
+          className="rounded-lg border border-gray-200 bg-white p-4 space-y-2"
+        >
           <input
             type="text"
-            placeholder="https://example.com/article"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+            placeholder="Title (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
             disabled={!agentId}
           />
-          <button
-            type="submit"
-            disabled={loading || !url.trim() || !agentId}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {loading ? "Adding..." : "Add URL"}
-          </button>
-        </div>
-        <p className="text-xs text-gray-500">
-          We will fetch the page and extract text server‑side.
-        </p>
-      </form>
-
-      {/* File upload */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
-        <label className="text-sm font-medium text-gray-700">Upload file</label>
-        <div className="flex items-center gap-3">
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
-            onChange={handleUpload}
+          <textarea
+            rows={3}
+            placeholder="Paste or write information here..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
             disabled={!agentId}
           />
-          <span className="text-xs text-gray-500">PDF, DOCX/PPTX, or TXT</span>
-        </div>
-        {uploading && <div className="text-xs text-gray-500">Uploading…</div>}
-      </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={loading || !agentId}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {loading ? "Adding..." : "Add Entry"}
+            </button>
+          </div>
+        </form>
 
-      {/* Entries list */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-900">Knowledge Items</h3>
-        {entries.length === 0 ? (
-          <p className="text-sm text-gray-500">No entries yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {entries.map((e) => (
-              <li
-                key={e.id}
-                className="flex justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs rounded bg-gray-100 px-2 py-0.5 text-gray-700">
-                      {e.type || e.sourceType || "text"}
-                    </span>
-                    <span className="font-medium text-gray-800 truncate">
-                      {e.title || e.filename || "Untitled"}
-                    </span>
+        {/* URL add */}
+        <form
+          onSubmit={addUrl}
+          className="rounded-lg border border-gray-200 bg-white p-4 space-y-3"
+        >
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="https://example.com/article"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+              disabled={!agentId}
+            />
+            <button
+              type="submit"
+              disabled={loading || !url.trim() || !agentId}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {loading ? "Adding..." : "Add URL"}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            We will fetch the page and extract text server‑side.
+          </p>
+        </form>
+
+        {/* File upload */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-2">
+          <label className="text-sm font-medium text-gray-700">Upload file</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
+              onChange={handleUpload}
+              disabled={!agentId}
+            />
+            <span className="text-xs text-gray-500">PDF, DOCX/PPTX, or TXT</span>
+          </div>
+          {uploading && <div className="text-xs text-gray-500">Uploading…</div>}
+        </div>
+
+        {/* Entries list */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-900">Knowledge Items</h3>
+          {entries.length === 0 ? (
+            <p className="text-sm text-gray-500">No entries yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {entries.map((e) => (
+                <li
+                  key={e.id}
+                  className="flex justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs rounded bg-gray-100 px-2 py-0.5 text-gray-700">
+                        {e.type || e.sourceType || "text"}
+                      </span>
+                      <span className="font-medium text-gray-800 truncate">
+                        {e.title || e.filename || "Untitled"}
+                      </span>
+                    </div>
+                    {e.url && (
+                      <a
+                        href={e.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-xs text-indigo-600 hover:underline truncate"
+                      >
+                        {e.url}
+                      </a>
+                    )}
+                    {e.content && (
+                      <p className="mt-1 text-xs text-gray-600 whitespace-pre-wrap line-clamp-3">
+                        {e.content.slice(0, 500)}
+                        {e.content.length > 500 ? "…" : ""}
+                      </p>
+                    )}
                   </div>
-                  {e.url && (
-                    <a
-                      href={e.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block text-xs text-indigo-600 hover:underline truncate"
+                  <div className="shrink-0">
+                    <button
+                      onClick={() => removeEntry(e.id)}
+                      className="text-xs text-red-600 hover:underline"
                     >
-                      {e.url}
-                    </a>
-                  )}
-                  {e.content && (
-                    <p className="mt-1 text-xs text-gray-600 whitespace-pre-wrap line-clamp-3">
-                      {e.content.slice(0, 500)}
-                      {e.content.length > 500 ? "…" : ""}
-                    </p>
-                  )}
-                </div>
-                <div className="shrink-0">
-                  <button
-                    onClick={() => removeEntry(e.id)}
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
-    </div>
+    </BuilderErrorBoundary>
   );
 }
