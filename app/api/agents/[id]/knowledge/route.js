@@ -79,7 +79,8 @@ export async function DELETE(req, { params }) {
     select: { id: true },
   });
   if (!item) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // Idempotent delete: if it's already gone, respond OK so the UI stays in sync.
+    return NextResponse.json({ ok: true });
   }
 
   await prisma.knowledge.delete({ where: { id: itemId } });
