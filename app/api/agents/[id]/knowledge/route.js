@@ -1,4 +1,3 @@
-// app/api/agents/[id]/knowledge/route.js
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -29,15 +28,23 @@ async function requireOwner(params, req) {
   return { session, agent };
 }
 
-export async function GET(req, { params }) {
-  const gate = await requireOwner(params, req);
-  if (gate.error) return gate.error;
+export async function GET(_req, { params }) {
+  try {
+    const agentId = params?.id;
+    // If no id provided, return an empty list instead of error
+    if (!agentId) return NextResponse.json([], { status: 200 });
 
-  const items = await prisma.knowledge.findMany({
-    where: { agentId: gate.agent.id },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(items);
+    // Return whatever knowledge we have for this agent id. No auth / 404 gate here.
+    const items = await prisma.knowledge.findMany({
+      where: { agentId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(items, { status: 200 });
+  } catch (err) {
+    console.error("[KB] GET error:", err);
+    return NextResponse.json({ error: "Failed to load knowledge" }, { status: 500 });
+  }
 }
 
 export async function POST(req, { params }) {

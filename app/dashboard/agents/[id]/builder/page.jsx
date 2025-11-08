@@ -172,7 +172,8 @@ function LivePreview({ agentId, languageHint }) {
 // ---------- Main Page ----------
 export default function BuilderPage() {
   const params = useParams();
-  const agentId = params?.id;
+  const rawId = params?.id;
+  const agentId = Array.isArray(rawId) ? rawId[0] : (rawId ?? "");
   const router = useRouter();
 
   // Agent info
