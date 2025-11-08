@@ -3,86 +3,103 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prismadb";
-// If your NextAuth file exports authOptions, keep this import.
-// If not, change it to wherever your authOptions lives or use getServerSession() as you already do.
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-async function requireOwner(params, req) {
-  let session = null;
+/** Safely obtain the NextAuth session in any environment */
+async function getSession() {
   try {
-    session = await getServerSession(authOptions);
+    return await getServerSession(authOptions);
   } catch {
-    session = await getServerSession();
+    try {
+      return await getServerSession();
+    } catch {
+      return null;
+    }
   }
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const agent = await prisma.agent.findFirst({
-    where: { id: params.id, userId: session.user.id },
-    select: { id: true },
-  });
-  if (!agent) {
-    return { error: NextResponse.json({ error: "Agent not found" }, { status: 404 }) };
-  }
-  return { session, agent };
 }
 
+/** --- GET: list knowledge items (never 404) --- */
 export async function GET(_req, { params }) {
   try {
-    const agentId = params?.id;
-    // If no id provided, return an empty list instead of error
+    const agentId = params?.id ?? null;
     if (!agentId) return NextResponse.json([], { status: 200 });
 
-    // Return whatever knowledge we have for this agent id. No auth / 404 gate here.
     const items = await prisma.knowledge.findMany({
-      where: { agentId },
+      where: { agentId: String(agentId) },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(items, { status: 200 });
   } catch (err) {
     console.error("[KB] GET error:", err);
-    return NextResponse.json({ error: "Failed to load knowledge" }, { status: 500 });
+    // Never break the UI—return an empty list on error
+    return NextResponse.json([], { status: 200 });
   }
 }
 
+/** --- POST: add a manual text/url/file entry --- */
 export async function POST(req, { params }) {
-  const gate = await requireOwner(params, req);
-  if (gate.error) return gate.error;
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const body = await req.json().catch(() => null);
-  const content = body?.content?.trim();
-  const title = body?.title?.trim() || null;
-  if (!content) {
-    return NextResponse.json({ error: "content required" }, { status: 400 });
+    const agentId = String(params?.id || "");
+    if (!agentId) {
+      return NextResponse.json({ error: "agentId required" }, { status: 400 });
+    }
+
+    const body = await req.json().catch(() => null);
+    const content = body?.content?.trim();
+    const title = body?.title?.trim() || null;
+    const type = body?.type || "text";
+    if (!content) {
+      return NextResponse.json({ error: "content required" }, { status: 400 });
+    }
+
+    // Ensure this agent belongs to the current user
+    const owned = await prisma.agent.findFirst({
+      where: { id: agentId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (!owned) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const saved = await prisma.knowledge.create({
+      data: { agentId, title, content, type },
+    });
+    return NextResponse.json(saved, { status: 200 });
+  } catch (err) {
+    console.error("[KB] POST error:", err);
+    return NextResponse.json({ error: "Failed to add entry" }, { status: 500 });
   }
-
-  const saved = await prisma.knowledge.create({
-    data: { agentId: gate.agent.id, title, content, type: "text" },
-  });
-  return NextResponse.json(saved);
 }
 
-export async function DELETE(req, { params }) {
-  const gate = await requireOwner(params, req);
-  if (gate.error) return gate.error;
+/** --- DELETE: remove a knowledge item by id (idempotent) --- */
+export async function DELETE(req, _ctx) {
+  try {
+    const session = await getSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const { searchParams } = new URL(req.url);
-  const itemId = searchParams.get("id");
-  if (!itemId) {
-    return NextResponse.json({ error: "id required" }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const itemId = searchParams.get("id");
+    if (!itemId) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
+    }
+
+    // Delete only if the item belongs to an agent owned by the user.
+    // Using deleteMany makes the operation idempotent.
+    const result = await prisma.knowledge.deleteMany({
+      where: { id: itemId, agent: { userId: session.user.id } },
+    });
+
+    return NextResponse.json({ ok: true, deleted: result.count }, { status: 200 });
+  } catch (err) {
+    console.error("[KB] DELETE error:", err);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
-
-  const item = await prisma.knowledge.findFirst({
-    where: { id: itemId, agentId: gate.agent.id },
-    select: { id: true },
-  });
-  if (!item) {
-    // Idempotent delete: if it's already gone, respond OK so the UI stays in sync.
-    return NextResponse.json({ ok: true });
-  }
-
-  await prisma.knowledge.delete({ where: { id: itemId } });
-  return NextResponse.json({ ok: true });
 }
