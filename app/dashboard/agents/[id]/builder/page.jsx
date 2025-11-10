@@ -13,11 +13,10 @@ const DEFAULT_LANGUAGES = [
   "Ukrainian", "Bulgarian", "Slovak", "Slovenian", "Croatian", "Serbian", "Lithuanian",
   "Latvian", "Estonian", "Tamil", "Telugu", "Marathi", "Gujarati",
 ];
+
 const RAW_LANGS = Array.isArray(LANGUAGES) && LANGUAGES.length ? LANGUAGES : DEFAULT_LANGUAGES;
-const LANGUAGE_DROPDOWN = [
-  { label: "Auto (mirror user language)", value: "auto" },
-  ...LANG_OPTIONS,
-];
+
+// Build normalized options first
 const LANG_OPTIONS = RAW_LANGS.map((l) => {
   if (typeof l === "string") return { label: l, value: l };
   if (l && typeof l === "object") {
@@ -27,6 +26,12 @@ const LANG_OPTIONS = RAW_LANGS.map((l) => {
   }
   return null;
 }).filter(Boolean);
+
+// Then build the dropdown, prefixed by Auto
+const LANGUAGE_DROPDOWN = [
+  { label: "Auto-detect (reply in user's language)", value: "auto" },
+  ...LANG_OPTIONS,
+];
 
 async function parseJson(res) {
   try {
