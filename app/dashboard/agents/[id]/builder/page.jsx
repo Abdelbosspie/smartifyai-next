@@ -14,6 +14,10 @@ const DEFAULT_LANGUAGES = [
   "Latvian", "Estonian", "Tamil", "Telugu", "Marathi", "Gujarati",
 ];
 const RAW_LANGS = Array.isArray(LANGUAGES) && LANGUAGES.length ? LANGUAGES : DEFAULT_LANGUAGES;
+const LANGUAGE_DROPDOWN = [
+  { label: "Auto (mirror user language)", value: "auto" },
+  ...LANG_OPTIONS,
+];
 const LANG_OPTIONS = RAW_LANGS.map((l) => {
   if (typeof l === "string") return { label: l, value: l };
   if (l && typeof l === "object") {
@@ -439,12 +443,13 @@ export default function BuilderPage() {
                     onChange={(e) => setLanguage(e.target.value)}
                     disabled={!agentId}
                   >
-                    {LANG_OPTIONS.map((opt) => (
+                    {LANGUAGE_DROPDOWN.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
                   </select>
+                  <p className="mt-1 text-[11px] text-gray-500">Replies will use this language. Choose “Auto” to mirror the user’s language.</p>
                 </div>
               </div>
 
