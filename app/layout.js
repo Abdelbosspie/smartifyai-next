@@ -1,6 +1,7 @@
 import "../styles/globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import Providers from "./providers";
+import SmartifyAIWidget from "./SmartifyAIWidget";
 
 export const metadata = {
   title: "SmartifyAI",
@@ -15,7 +16,7 @@ export default function RootLayout({ children }) {
           {children}
           <Analytics /> {/* Vercel visitor analytics */}
         </Providers>
-
+        <SmartifyAIWidget />
       
 
         {/* Smooth scroll handler */}
